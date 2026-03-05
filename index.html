@@ -802,7 +802,10 @@ function countAreasInLasso(){
 async function fetchTflTime(fromLat,fromLng,toLat,toLng){
   var url='https://api.tfl.gov.uk/Journey/JourneyResults/'+fromLat+','+fromLng+'/to/'+toLat+','+toLng+'?app_key='+TFL_KEY+'&mode=tube,dlr,overground,elizabeth-line,national-rail&journeyPreference=LeastTime';
   try{
-    var res=await fetch(url);
+    var controller=new AbortController();
+    var timeout=setTimeout(function(){controller.abort();},8000);
+    var res=await fetch(url,{signal:controller.signal});
+    clearTimeout(timeout);
     if(!res.ok)return null;
     var data=await res.json();
     if(data.journeys&&data.journeys.length>0)return data.journeys[0].duration;
@@ -817,7 +820,7 @@ async function fetchBatch(tasks,batchSize,onProgress){
     var br=await Promise.all(batch.map(function(t){return t();}));
     br.forEach(function(r,j){results[i+j]=r;});
     onProgress(Math.min(i+batchSize,tasks.length),tasks.length);
-    if(i+batchSize<tasks.length)await new Promise(function(r){setTimeout(r,300);});
+    if(i+batchSize<tasks.length)await new Promise(function(r){setTimeout(r,600);});
   }
   return results;
 }
@@ -860,16 +863,16 @@ async function computeZones(){
       return function(){return fetchTflTime(area.lat,area.lng,CW.lat,CW.lng);};
     });
     var holTasks=activeAreas.map(function(area){
-      return function(){return fetchTflTime(area.lat,area.lng,HOL.lat,HOL.lng);};
+      return function(){return fetchTflTime(HOL.lat,HOL.lng,area.lat,area.lng);};
     });
     document.getElementById('progress-bar').style.width='0%';
     document.getElementById('progress-label').textContent='Fetching Canary Wharf times...';
-    var cwTimes=await fetchBatch(cwTasks,6,function(n,t){
+    var cwTimes=await fetchBatch(cwTasks,3,function(n,t){
       document.getElementById('progress-bar').style.width=Math.round((n/t)*50)+'%';
       document.getElementById('progress-label').textContent='Canary Wharf: '+n+'/'+t+' done...';
     });
     document.getElementById('progress-label').textContent='Fetching Holborn times...';
-    var holTimes=await fetchBatch(holTasks,6,function(n,t){
+    var holTimes=await fetchBatch(holTasks,3,function(n,t){
       document.getElementById('progress-bar').style.width=(50+Math.round((n/t)*50))+'%';
       document.getElementById('progress-label').textContent='Holborn: '+n+'/'+t+' done...';
     });
