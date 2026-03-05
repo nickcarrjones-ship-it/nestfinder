@@ -762,11 +762,14 @@ function lassoFinish(e){
   document.getElementById('lasso-hint').className='lasso-hint';
 }
 function stopLasso(){
+  // Only clear polygon if we're mid-draw (not if already finished)
   lassoActive=false;
   map.off('click',lassoClick);
   map.off('dblclick',lassoFinish);
-  lassoLayer.clearLayers();
-  if(lassoPolygon){lassoPolygon=null;}
+  if(!lassoPolygon){
+    // Only clear layer if no finished polygon exists
+    lassoLayer.clearLayers();
+  }
   lassoPoints=[];
   map.dragging.enable();
   map.doubleClickZoom.enable();
@@ -830,7 +833,6 @@ async function computeZones(){
   var p1Max=parseInt(document.getElementById('p1-max').value);
   var p2Max=parseInt(document.getElementById('p2-max').value);
   var useLasso=lassoPolygon!==null;
-  alert('useLasso='+useLasso+', lassoPolygon='+(lassoPolygon?'SET':'NULL'));
   var activeAreas=AREAS.filter(function(a){
     var lassoOk=!useLasso||pointInPolygon({lat:a.lat,lng:a.lng},lassoPolygon);
     return lassoOk;
@@ -934,7 +936,19 @@ async function computeZones(){
 function clearResults(){
   layers.commute.clearLayers(); layers.markers.clearLayers();
   zoomCircles=[];
-  stopLasso();
+  // Full lasso reset
+  lassoActive=false;
+  map.off('click',lassoClick);
+  map.off('dblclick',lassoFinish);
+  lassoLayer.clearLayers();
+  lassoPolygon=null;
+  lassoPoints=[];
+  map.dragging.enable();
+  map.doubleClickZoom.enable();
+  map.getContainer().style.cursor='';
+  document.getElementById('lasso-btn').className='lasso-btn';
+  document.getElementById('lasso-btn').textContent='🤠 Lasso specific areas (optional)';
+  document.getElementById('lasso-hint').className='lasso-hint';
   document.getElementById('results-section').style.display='none';
   document.getElementById('clear-btn').style.display='none';
   document.getElementById('header-status').textContent='Find your overlap zone';
