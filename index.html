@@ -125,7 +125,7 @@ var TUBE_LINES=[{name:"Central",color:"#E32017",w:3,group:"tube",route:["Acton T
     
 var map=L.map('map',{center:[51.505,-0.06],zoom:11,zoomControl:false});
 L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
 var layers={tube:L.layerGroup().addTo(map),elizabeth:L.layerGroup().addTo(map),overground:L.layerGroup().addTo(map),stations:L.layerGroup().addTo(map),commute:L.layerGroup().addTo(map),markers:L.layerGroup().addTo(map)};
 var layerOn={tube:true,elizabeth:true,overground:true,stations:true};
 function toggleLayer(n){layerOn[n]=!layerOn[n];document.getElementById('toggle-'+n).className='toggle '+(layerOn[n]?'on':'off');if(layerOn[n])layers[n].addTo(map);else map.removeLayer(layers[n]);}
