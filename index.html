@@ -425,51 +425,52 @@ function toggleSidebar(){
   btn.style.left=sidebarOpen?'300px':'0';
 }
 
-var activeProxy=0;
-var PROXIES=[
-  function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u);},
-  function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u);},
-  function(u){return 'https://thingproxy.freeboard.io/fetch/'+u;}
-];
-async function fetchWithProxy(url){
-  for(var attempt=0;attempt<PROXIES.length;attempt++){
-    var proxyIdx=(activeProxy+attempt)%PROXIES.length;
+function fetchWithTimeout(url, ms){
+  return new Promise(function(resolve, reject){
+    var timer=setTimeout(function(){reject(new Error('timeout'));}, ms);
+    fetch(url).then(function(r){clearTimeout(timer);resolve(r);}, function(e){clearTimeout(timer);reject(e);});
+  });
+}
+
+async function fetchTfl(tflUrl){
+  // corsproxy.io is most reliable - try it with a strict 6s timeout
+  var proxies=[
+    'https://corsproxy.io/?url='+encodeURIComponent(tflUrl),
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(tflUrl)
+  ];
+  for(var i=0;i<proxies.length;i++){
     try{
-      var res=await fetch(PROXIES[proxyIdx](url));
+      var res=await fetchWithTimeout(proxies[i], 6000);
       if(res.ok){
         var text=await res.text();
-        if(text&&text.length>10){activeProxy=proxyIdx;return JSON.parse(text);}
+        if(text&&text[0]==='{'){return JSON.parse(text);}
       }
     }catch(e){}
   }
   return null;
 }
+
 async function fetchOneJourney(fromLat,fromLng,toLat,toLng,date,time,timeIs){
   var url='https://api.tfl.gov.uk/Journey/JourneyResults/'+fromLat+','+fromLng+'/to/'+toLat+','+toLng
     +'?app_key=079539e46d394c88a128cf05c97957bf&mode=tube,dlr,overground,elizabeth-line,national-rail'
     +'&journeyPreference=LeastTime&date='+date+'&time='+time+'&timeIs='+timeIs;
   try{
-    var data=await fetchWithProxy(url);
+    var data=await fetchTfl(url);
     if(data&&data.journeys&&data.journeys.length>0)return data.journeys[0].duration;
     return null;
   }catch(e){return null;}
 }
 
 async function fetchJourneyTime(fromLat,fromLng,toLat,toLng){
-  // Find next Monday for peak-time calculation
+  // Next Monday AM peak only (single call per area = 2x faster, less proxy strain)
   var d=new Date();
-  var day=d.getDay(); // 0=Sun,1=Mon,...,6=Sat
-  var daysUntilMon=day===1?7:(8-day)%7||7; // always next Monday, never today
+  var day=d.getDay();
+  var daysUntilMon=day===1?7:(8-day)%7||7;
   d.setDate(d.getDate()+daysUntilMon);
   var date=d.getFullYear().toString()
     +(d.getMonth()+1).toString().padStart(2,'0')
     +d.getDate().toString().padStart(2,'0');
-  var am=await fetchOneJourney(fromLat,fromLng,toLat,toLng,date,'0830','Arriving');
-  var pm=await fetchOneJourney(fromLat,fromLng,toLat,toLng,date,'1730','Departing');
-  if(am===null&&pm===null)return null;
-  if(am===null)return pm;
-  if(pm===null)return am;
-  return Math.round((am+pm)/2);
+  return await fetchOneJourney(fromLat,fromLng,toLat,toLng,date,'0830','Arriving');
 }
 
 async function fetchBatch(tasks,batchSize,onProgress){
@@ -504,13 +505,13 @@ async function computeZones(){
   var holTasks=activeAreas.map(function(area){return function(){return fetchJourneyTime(area.lat,area.lng,HOL.lat,HOL.lng);};});
 
   document.getElementById('header-status').textContent="Fetching Nick's times...";
-  var cwTimes=await fetchBatch(cwTasks,8,function(n,t){
+  var cwTimes=await fetchBatch(cwTasks,4,function(n,t){
     document.getElementById('progress-bar').style.width=Math.round((n/t)*50)+'%';
     document.getElementById('progress-label').textContent='Canary Wharf: '+n+' / '+t;
   });
 
   document.getElementById('header-status').textContent="Fetching Harriet's times...";
-  var holTimes=await fetchBatch(holTasks,8,function(n,t){
+  var holTimes=await fetchBatch(holTasks,4,function(n,t){
     document.getElementById('progress-bar').style.width=(50+Math.round((n/t)*50))+'%';
     document.getElementById('progress-label').textContent='Holborn: '+n+' / '+t;
   });
