@@ -171,7 +171,7 @@ async function computeZones(){
     var t1s=a.t1!==null?a.t1+' min':'n/a',t2s=a.t2!==null?a.t2+' min':'n/a';
     L.circle([a.lat,a.lng],{renderer:renderer,radius:1100,fillColor:color,color:a.both?'#84cc16':'transparent',weight:a.both?1.5:0,fillOpacity:a.both?0.45:0.28})});
   function mkIcon(label,col){return L.divIcon({html:'<div style="background:'+col+';width:38px;height:38px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,0.35)">'+label+'</div>',className:'',iconSize:[38,38],iconAnchor:[19,19]});}
-  L.marker([51.5051,-0.0200],{icon:mkIcon('CW','#f43f8e')}).bindPopup('<b>Canary Wharf</b><br>Your workplace').addTo(layers.markers);
+  L.marker([51.5051,-0.0200],{icon:mkIcon('CW','#f43f8e')}).bindPopup('<b>Canary Wharf</b><br>Nick workplace'').addTo(layers.markers);
   L.marker([51.5174,-0.1200],{icon:mkIcon('HOL','#38bdf8')}).bindPopup('<b>Holborn</b><br>Harriet workplace'').addTo(layers.markers);
   var idealCount=areaResults.filter(function(a){return a.both;}).length;
   var reachCount=areaResults.filter(function(a){return a.inP1||a.inP2;}).length;
