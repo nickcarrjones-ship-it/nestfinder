@@ -35,11 +35,7 @@ select:focus { border-color: #6366f1; }
 .btn-primary { width: 100%; padding: 16px 0; background: #1a1f36; color: #a3e635; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px; font-family: inherit; margin-top: 12px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .btn-primary:disabled { background: #9ca3af; color: #fff; cursor: not-allowed; }
 .btn-secondary { width: 100%; padding: 13px 0; background: transparent; color: #6b7280; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 15px; cursor: pointer; font-family: inherit; touch-action: manipulation; }
-.progress-wrap { display: none; margin: 12px 0 4px; }
-.progress-wrap.show { display: block; }
-.progress-bar-bg { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
-.progress-bar-fill { height: 100%; background: #a3e635; border-radius: 3px; transition: width 0.3s; width: 0%; }
-.progress-label { font-size: 11px; color: #6b7280; margin-top: 6px; text-align: center; }
+
 .layer-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; min-height: 52px; border-bottom: 1px solid #f9fafb; }
 .layer-left { display: flex; align-items: center; gap: 10px; }
 .layer-swatch { width: 20px; height: 4px; border-radius: 2px; flex-shrink: 0; }
@@ -84,7 +80,7 @@ select:focus { border-color: #6366f1; }
 <body>
 <header>
   <div class="logo">nest<span>finder</span></div>
-  <div class="header-status" id="header-status">Live TfL journey times</div>
+  <div class="header-status" id="header-status">Avg weekday journey times</div>
 </header>
 <div class="main">
   <div class="sidebar" id="sidebar">
@@ -108,10 +104,6 @@ select:focus { border-color: #6366f1; }
         <button class="seg-btn active" id="seg-both" onclick="setTransportFilter('both')">🚇+🚆 Both</button>
         <button class="seg-btn" id="seg-tube" onclick="setTransportFilter('tube')">🚇 Tube</button>
         <button class="seg-btn" id="seg-rail" onclick="setTransportFilter('rail')">🚆 Rail</button>
-      </div>
-      <div class="progress-wrap" id="progress-wrap">
-        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
-        <div class="progress-label" id="progress-label">Fetching live TfL times...</div>
       </div>
       <button class="btn-primary" id="compute-btn" onclick="computeZones()">&#9654; Find Overlap Zone</button>
       <button class="btn-secondary" id="clear-btn" onclick="clearResults()" style="display:none">&#10005; Clear Results</button>
@@ -425,102 +417,57 @@ function toggleSidebar(){
   btn.style.left=sidebarOpen?'300px':'0';
 }
 
-function fetchWithTimeout(url, ms){
-  return new Promise(function(resolve, reject){
-    var timer=setTimeout(function(){reject(new Error('timeout'));}, ms);
-    fetch(url).then(function(r){clearTimeout(timer);resolve(r);}, function(e){clearTimeout(timer);reject(e);});
-  });
-}
+var JOURNEY_TIMES={
+  "Shoreditch":{cw:18,hol:12},"Hackney":{cw:22,hol:20},"Islington":{cw:25,hol:15},
+  "Stoke Newington":{cw:35,hol:25},"Dalston":{cw:28,hol:22},"Peckham":{cw:30,hol:28},
+  "Brixton":{cw:35,hol:28},"Herne Hill":{cw:38,hol:30},"Forest Hill":{cw:42,hol:38},
+  "Lewisham":{cw:25,hol:30},"Greenwich":{cw:20,hol:32},"Deptford":{cw:22,hol:28},
+  "Bermondsey":{cw:18,hol:18},"Wapping":{cw:12,hol:20},"Bethnal Green":{cw:18,hol:18},
+  "Mile End":{cw:14,hol:22},"Bow":{cw:18,hol:26},"Stratford":{cw:10,hol:25},
+  "Leyton":{cw:20,hol:30},"Walthamstow":{cw:28,hol:35},"Crouch End":{cw:45,hol:35},
+  "Finsbury Park":{cw:32,hol:22},"Holloway":{cw:35,hol:25},"Archway":{cw:38,hol:28},
+  "Highgate":{cw:42,hol:32},"Muswell Hill":{cw:50,hol:40},"East Finchley":{cw:45,hol:35},
+  "Golders Green":{cw:48,hol:38},"Hampstead":{cw:42,hol:32},"Belsize Park":{cw:38,hol:28},
+  "Kentish Town":{cw:32,hol:22},"Camden":{cw:30,hol:20},"Tufnell Park":{cw:35,hol:25},
+  "Kilburn":{cw:38,hol:28},"West Hampstead":{cw:35,hol:25},"Hendon":{cw:52,hol:42},
+  "Wembley":{cw:45,hol:42},"Harlesden":{cw:35,hol:35},"Willesden":{cw:38,hol:32},
+  "Queen's Park":{cw:32,hol:28},"Maida Vale":{cw:35,hol:25},"Notting Hill":{cw:38,hol:28},
+  "Ladbroke Grove":{cw:40,hol:30},"Shepherd's Bush":{cw:38,hol:30},"Hammersmith":{cw:35,hol:30},
+  "Chiswick":{cw:38,hol:35},"Acton":{cw:35,hol:32},"Ealing":{cw:42,hol:40},
+  "West Kensington":{cw:32,hol:25},"Fulham":{cw:30,hol:28},"Parsons Green":{cw:32,hol:30},
+  "Putney":{cw:35,hol:32},"Wandsworth":{cw:38,hol:35},"Clapham":{cw:30,hol:25},
+  "Balham":{cw:32,hol:28},"Tooting":{cw:35,hol:32},"Wimbledon":{cw:35,hol:35},
+  "Crystal Palace":{cw:40,hol:38},"Sydenham":{cw:38,hol:35},"New Cross":{cw:25,hol:30},
+  "Surrey Quays":{cw:18,hol:22},"Vauxhall":{cw:25,hol:20},"Kennington":{cw:22,hol:18},
+  "Stockwell":{cw:28,hol:22},"Elephant & Castle":{cw:18,hol:15},"Borough":{cw:15,hol:15},
+  "Southwark":{cw:18,hol:15},"Clapham Junction":{cw:32,hol:28},"Streatham":{cw:40,hol:35},
+  "Brockley":{cw:28,hol:32},"Honor Oak Park":{cw:35,hol:35},"Kingston":{cw:55,hol:48},
+  "Surbiton":{cw:48,hol:45},"New Malden":{cw:42,hol:40},"Raynes Park":{cw:38,hol:36},
+  "Twickenham":{cw:52,hol:50},"Richmond":{cw:42,hol:40},"Teddington":{cw:55,hol:52},
+  "Hampton":{cw:62,hol:58},"Wimbledon Chase":{cw:40,hol:38},"Earlsfield":{cw:35,hol:32},
+  "Norbiton":{cw:48,hol:45},"Berrylands":{cw:50,hol:47},"Tolworth":{cw:55,hol:52},
+  "Esher":{cw:60,hol:55},"Walton-on-Thames":{cw:65,hol:60},"Sidcup":{cw:45,hol:42},
+  "Eltham":{cw:38,hol:40},"Welling":{cw:48,hol:45},"Bexleyheath":{cw:50,hol:48},
+  "Dartford":{cw:60,hol:58}
+};
 
-async function fetchTfl(tflUrl){
-  // corsproxy.io is most reliable - try it with a strict 6s timeout
-  var proxies=[
-    'https://corsproxy.io/?url='+encodeURIComponent(tflUrl),
-    'https://api.allorigins.win/raw?url='+encodeURIComponent(tflUrl)
-  ];
-  for(var i=0;i<proxies.length;i++){
-    try{
-      var res=await fetchWithTimeout(proxies[i], 6000);
-      if(res.ok){
-        var text=await res.text();
-        if(text&&text[0]==='{'){return JSON.parse(text);}
-      }
-    }catch(e){}
-  }
-  return null;
-}
-
-async function fetchOneJourney(fromLat,fromLng,toLat,toLng,date,time,timeIs){
-  var url='https://api.tfl.gov.uk/Journey/JourneyResults/'+fromLat+','+fromLng+'/to/'+toLat+','+toLng
-    +'?app_key=079539e46d394c88a128cf05c97957bf&mode=tube,dlr,overground,elizabeth-line,national-rail'
-    +'&journeyPreference=LeastTime&date='+date+'&time='+time+'&timeIs='+timeIs;
-  try{
-    var data=await fetchTfl(url);
-    if(data&&data.journeys&&data.journeys.length>0)return data.journeys[0].duration;
-    return null;
-  }catch(e){return null;}
-}
-
-async function fetchJourneyTime(fromLat,fromLng,toLat,toLng){
-  // Next Monday AM peak only (single call per area = 2x faster, less proxy strain)
-  var d=new Date();
-  var day=d.getDay();
-  var daysUntilMon=day===1?7:(8-day)%7||7;
-  d.setDate(d.getDate()+daysUntilMon);
-  var date=d.getFullYear().toString()
-    +(d.getMonth()+1).toString().padStart(2,'0')
-    +d.getDate().toString().padStart(2,'0');
-  return await fetchOneJourney(fromLat,fromLng,toLat,toLng,date,'0830','Arriving');
-}
-
-async function fetchBatch(tasks,batchSize,onProgress){
-  var results=new Array(tasks.length);
-  for(var i=0;i<tasks.length;i+=batchSize){
-    var batch=tasks.slice(i,i+batchSize);
-    var br=await Promise.all(batch.map(function(t){return t();}));
-    br.forEach(function(r,j){results[i+j]=r;});
-    onProgress(Math.min(i+batchSize,tasks.length),tasks.length);
-    if(i+batchSize<tasks.length)await new Promise(function(r){setTimeout(r,200);});
-  }
-  return results;
-}
-
-async function computeZones(){
+function computeZones(){
   var p1Max=parseInt(document.getElementById('p1-max').value);
   var p2Max=parseInt(document.getElementById('p2-max').value);
 
-  // Filter areas by transport preference
   var activeAreas=AREAS.filter(function(a){
     if(transportFilter==='both')return true;
     return a.transport===transportFilter||a.transport==='both';
   });
 
-  layers.commute.clearLayers();layers.markers.clearLayers();
+  layers.commute.clearLayers();
+  layers.markers.clearLayers();
   document.getElementById('results-section').style.display='none';
-  document.getElementById('compute-btn').disabled=true;
-  document.getElementById('progress-wrap').classList.add('show');
-  document.getElementById('progress-bar').style.width='0%';
 
-  var cwTasks=activeAreas.map(function(area){return function(){return fetchJourneyTime(area.lat,area.lng,CW.lat,CW.lng);};});
-  var holTasks=activeAreas.map(function(area){return function(){return fetchJourneyTime(area.lat,area.lng,HOL.lat,HOL.lng);};});
-
-  document.getElementById('header-status').textContent="Fetching Nick's times...";
-  var cwTimes=await fetchBatch(cwTasks,4,function(n,t){
-    document.getElementById('progress-bar').style.width=Math.round((n/t)*50)+'%';
-    document.getElementById('progress-label').textContent='Canary Wharf: '+n+' / '+t;
-  });
-
-  document.getElementById('header-status').textContent="Fetching Harriet's times...";
-  var holTimes=await fetchBatch(holTasks,4,function(n,t){
-    document.getElementById('progress-bar').style.width=(50+Math.round((n/t)*50))+'%';
-    document.getElementById('progress-label').textContent='Holborn: '+n+' / '+t;
-  });
-
-  document.getElementById('progress-bar').style.width='100%';
-  var successCount=cwTimes.filter(function(t){return t!==null;}).length+holTimes.filter(function(t){return t!==null;}).length;
-
-  var areaResults=activeAreas.map(function(area,i){
-    var t1=cwTimes[i],t2=holTimes[i];
+  var areaResults=activeAreas.map(function(area){
+    var times=JOURNEY_TIMES[area.name]||null;
+    var t1=times?times.cw:null;
+    var t2=times?times.hol:null;
     var inP1=t1!==null&&t1<=p1Max;
     var inP2=t2!==null&&t2<=p2Max;
     return{name:area.name,lat:area.lat,lng:area.lng,t1:t1,t2:t2,inP1:inP1,inP2:inP2,both:inP1&&inP2,transport:area.transport,pc:area.pc};
@@ -534,8 +481,7 @@ async function computeZones(){
     var transportLabel=a.transport==='rail'?'🚆 Rail served':a.transport==='tube'?'🚇 Tube served':'🚇🚆 Tube & Rail';
 
     L.circle([a.lat,a.lng],{
-      renderer:renderer,
-      radius:1100,
+      renderer:renderer,radius:1100,
       fillColor:color,
       color:a.both?'#65a30d':'transparent',
       weight:a.both?1.5:0,
@@ -550,7 +496,7 @@ async function computeZones(){
         +'<div class="popup-row"><span>🩷 Harriet (Holborn)</span><b>'+t2s+'</b></div>'
         +'<div class="popup-divider"></div>'
         +'<a href="'+rmUrl+'" target="_blank" class="popup-rm-btn">🏠 View on Rightmove</a>'
-        +'<div class="popup-source">Avg peak TfL (8–9am / 5:30–7pm)</div>';
+        +'<div class="popup-source">Typical weekday peak journey times</div>';
     }).addTo(layers.commute);
   });
 
@@ -570,14 +516,7 @@ async function computeZones(){
   document.getElementById('results-section').style.display='block';
   document.getElementById('header-status').textContent=idealCount+' ideal areas found';
   document.getElementById('clear-btn').style.display='block';
-  var pct=Math.round((successCount/(activeAreas.length*2))*100);
-  var noteText=pct<50
-    ?'⚠️ Only '+pct+'% of API calls succeeded — proxy may be struggling. Try refreshing and running again.'
-    :'✓ Peak TfL data ('+pct+'% calls succeeded). Tap any bubble for details.';
-  document.getElementById('data-note').textContent=noteText;
-  if(pct<20){document.getElementById('header-status').textContent='⚠️ API issues — try again';}
-  document.getElementById('progress-wrap').classList.remove('show');
-  document.getElementById('compute-btn').disabled=false;
+  document.getElementById('data-note').textContent='Based on typical weekday peak journey times. Tap any bubble for details.';
   map.setView([51.505,-0.09],11);
 }
 
@@ -586,7 +525,7 @@ function clearResults(){
   layers.markers.clearLayers();
   document.getElementById('results-section').style.display='none';
   document.getElementById('clear-btn').style.display='none';
-  document.getElementById('header-status').textContent='Live TfL journey times';
+  document.getElementById('header-status').textContent='Avg weekday journey times';
 }
 </script>
 </body>
