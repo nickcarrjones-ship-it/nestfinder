@@ -4,120 +4,227 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>NestFinder London</title>
+<title>Harriet & Nick's House Hunt</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: #f8fafc; }
-header { height: 56px; background: #1a1f36; display: flex; align-items: center; padding: 0 16px; flex-shrink: 0; z-index: 1001; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-.logo { font-size: 18px; font-weight: 700; color: #a3e635; }
+header { height: 52px; background: #1a1f36; display: flex; align-items: center; padding: 0 16px; flex-shrink: 0; z-index: 1001; box-shadow: 0 2px 8px rgba(0,0,0,0.3); gap: 12px; }
+.logo { font-size: 15px; font-weight: 700; color: #a3e635; white-space: nowrap; }
 .logo span { color: #fff; font-weight: 300; font-style: italic; }
-.header-status { margin-left: auto; font-size: 11px; color: #94a3b8; max-width: 160px; text-align: right; line-height: 1.3; }
+.header-status { margin-left: auto; font-size: 11px; color: #94a3b8; text-align: right; line-height: 1.3; white-space: nowrap; }
 .main { display: flex; flex: 1; overflow: hidden; position: relative; }
-.sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid #e5e7eb; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; z-index: 1000; transition: transform 0.25s ease; -webkit-overflow-scrolling: touch; }
+.sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; z-index: 1000; transition: transform 0.25s ease; }
 .sidebar.collapsed { transform: translateX(-300px); position: absolute; height: 100%; }
-.toggle-btn { position: absolute; top: 50%; transform: translateY(-50%); left: 300px; z-index: 1002; background: #1a1f36; color: #a3e635; border: none; border-radius: 0 8px 8px 0; width: 28px; height: 56px; cursor: pointer; font-size: 18px; transition: left 0.25s ease; touch-action: manipulation; }
+.toggle-btn { position: absolute; top: 50%; transform: translateY(-50%); left: 300px; z-index: 1002; background: #1a1f36; color: #a3e635; border: none; border-radius: 0 8px 8px 0; width: 24px; height: 48px; cursor: pointer; font-size: 16px; transition: left 0.25s ease; touch-action: manipulation; }
 .toggle-btn.collapsed { left: 0; }
+.tabs { display: flex; border-bottom: 2px solid #f1f5f9; flex-shrink: 0; }
+.tab { flex: 1; padding: 10px 2px; text-align: center; font-size: 10px; font-weight: 600; color: #9ca3af; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; touch-action: manipulation; }
+.tab.active { color: #1a1f36; border-bottom-color: #a3e635; }
+.tab-content { display: none; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.tab-content.active { display: flex; flex-direction: column; }
 .section { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; }
-.section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #9ca3af; font-weight: 600; margin-bottom: 12px; }
-.person-card { border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; border: 1.5px solid; }
+.section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #9ca3af; font-weight: 600; margin-bottom: 10px; }
+.person-card { border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; border: 1.5px solid; }
 .person-card.p1 { background: #fdf2f8; border-color: #fce7f3; }
 .person-card.p2 { background: #f0f9ff; border-color: #e0f2fe; }
-.person-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.person-header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .person-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .person-name { font-size: 13px; font-weight: 600; color: #1f2937; }
-.person-station { font-size: 12px; color: #6b7280; padding-left: 18px; }
-label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 6px; margin-top: 10px; }
-select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 16px; padding: 12px 10px; outline: none; background: #fff; color: #1f2937; font-family: inherit; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; touch-action: manipulation; }
-select:focus { border-color: #6366f1; }
+.person-station { font-size: 11px; color: #6b7280; padding-left: 18px; }
+label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 4px; margin-top: 8px; }
+select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 15px; padding: 10px 10px; outline: none; background: #fff; color: #1f2937; font-family: inherit; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px; touch-action: manipulation; }
 .select-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.select-row label { margin-top: 10px; }
-.transport-filter { display: flex; gap: 6px; margin-top: 12px; }
-.transport-filter button { flex: 1; padding: 10px 4px; border: 1.5px solid #e5e7eb; border-radius: 8px; background: #fff; font-size: 12px; cursor: pointer; font-family: inherit; color: #6b7280; touch-action: manipulation; }
+.transport-filter { display: flex; gap: 6px; margin-top: 10px; }
+.transport-filter button { flex: 1; padding: 9px 2px; border: 1.5px solid #e5e7eb; border-radius: 8px; background: #fff; font-size: 11px; cursor: pointer; font-family: inherit; color: #6b7280; touch-action: manipulation; }
 .transport-filter button.active { background: #1a1f36; color: #a3e635; border-color: #1a1f36; font-weight: 600; }
-.btn-primary { width: 100%; padding: 16px 0; background: #1a1f36; color: #a3e635; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px; font-family: inherit; margin-top: 12px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-.btn-secondary { width: 100%; padding: 13px 0; background: transparent; color: #6b7280; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 15px; cursor: pointer; font-family: inherit; touch-action: manipulation; }
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-.stat-box { border-radius: 8px; padding: 12px; text-align: center; }
+.btn-primary { width: 100%; padding: 14px 0; background: #1a1f36; color: #a3e635; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 8px; font-family: inherit; margin-top: 10px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.btn-secondary { width: 100%; padding: 11px 0; background: transparent; color: #6b7280; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; touch-action: manipulation; }
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.stat-box { border-radius: 8px; padding: 10px; text-align: center; }
 .stat-box.green { background: #f0fdf4; border: 1px solid #bbf7d0; }
 .stat-box.grey { background: #f8fafc; border: 1px solid #e2e8f0; }
-.stat-value { font-size: 32px; font-weight: 700; line-height: 1; }
+.stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
 .stat-value.green { color: #16a34a; }
 .stat-value.grey { color: #475569; }
-.stat-label { font-size: 10px; color: #6b7280; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
-.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6b7280; margin-bottom: 6px; }
-.legend-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
-.data-note { font-size: 11px; color: #9ca3af; margin-top: 10px; line-height: 1.5; }
-#map { flex: 1; }
+.stat-label { font-size: 10px; color: #6b7280; margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6b7280; margin-bottom: 5px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.data-note { font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.5; }
+.area-placeholder { padding: 32px 16px; text-align: center; color: #9ca3af; }
+.area-placeholder-icon { font-size: 36px; margin-bottom: 12px; }
+.area-placeholder-text { font-size: 13px; line-height: 1.6; }
+.area-title { font-size: 17px; font-weight: 700; color: #1f2937; }
+.area-sub { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
+.area-commute { font-size: 12px; color: #6b7280; margin-bottom: 2px; }
+.agent-link { display: block; font-size: 13px; color: #6366f1; text-decoration: none; padding: 5px 0; border-bottom: 1px solid #f8fafc; font-weight: 500; }
+.agent-link:last-child { border-bottom: none; }
+.lifestyle-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 4px; }
+.lifestyle-stat { background: #f8fafc; border-radius: 8px; padding: 8px 6px; text-align: center; border: 1px solid #e5e7eb; }
+.lifestyle-num { font-size: 18px; font-weight: 700; color: #1a1f36; line-height: 1; }
+.lifestyle-lbl { font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; line-height: 1.3; }
+.lifestyle-loading { font-size: 12px; color: #9ca3af; padding: 12px 0; text-align: center; }
+.ts-nearby { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 10px; margin-top: 4px; font-size: 12px; color: #16a34a; font-weight: 600; }
+.ts-far { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-top: 4px; font-size: 12px; color: #6b7280; }
+.score-block { margin-top: 4px; }
+.score-row { display: flex; gap: 3px; margin-bottom: 8px; flex-wrap: nowrap; }
+.score-btn { flex: 1; min-width: 0; height: 28px; border-radius: 6px; border: 1.5px solid #e5e7eb; background: white; font-size: 11px; font-weight: 600; color: #6b7280; cursor: pointer; display: flex; align-items: center; justify-content: center; touch-action: manipulation; padding: 0; }
+.score-btn.active-nick { background: #38bdf8; color: #fff; border-color: #0ea5e9; }
+.score-btn.active-harriet { background: #f43f8e; color: #fff; border-color: #ec4899; }
+.comment-box { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; font-size: 12px; font-family: inherit; color: #374151; resize: none; outline: none; line-height: 1.5; }
+.comment-box:focus { border-color: #6366f1; }
+.save-btn { width: 100%; margin-top: 10px; padding: 12px; background: #1a1f36; color: #a3e635; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; touch-action: manipulation; }
+.save-confirm { text-align: center; font-size: 11px; color: #16a34a; margin-top: 6px; display: none; }
+.results-empty { padding: 32px 16px; text-align: center; color: #9ca3af; }
+.result-card { margin-bottom: 8px; border-radius: 10px; padding: 12px; border: 1.5px solid #e5e7eb; background: #f8fafc; cursor: pointer; }
+.result-card.top1 { background: #f0fdf4; border-color: #84cc16; }
+.result-card.top2 { background: #fefce8; border-color: #fbbf24; }
+.result-card.top3 { background: #fff7ed; border-color: #fb923c; }
+.result-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+.result-name { font-size: 14px; font-weight: 700; color: #1f2937; }
+.result-total { font-size: 20px; font-weight: 700; }
+.result-scores { display: flex; gap: 10px; font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+.result-comment { font-size: 11px; color: #9ca3af; font-style: italic; margin-top: 3px; }
+.rank-badge { display: inline-block; font-size: 9px; background: #1a1f36; color: #a3e635; padding: 2px 5px; border-radius: 8px; font-weight: 700; margin-left: 5px; vertical-align: middle; }
+.ts-marker { background: #1a1f36; border: 2px solid #a3e635; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #a3e635; width: 28px; height: 28px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
 .leaflet-popup-content-wrapper { border-radius: 12px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important; }
-.leaflet-popup-content { margin: 14px 16px !important; min-width: 200px; }
+.leaflet-popup-content { margin: 12px 14px !important; min-width: 180px; }
+#map { flex: 1; }
 </style>
 </head>
 <body>
 <header>
-  <div class="logo">nest<span>finder</span></div>
-  <div class="header-status" id="header-status">Avg weekday commute times</div>
+  <div class="logo">Harriet &amp; Nick's <span>House Hunt</span></div>
+  <div class="header-status" id="header-status">Find your overlap zone</div>
 </header>
 <div class="main">
   <div class="sidebar" id="sidebar">
-    <div class="section">
-      <div class="section-title">Commute Settings</div>
-      <div class="person-card p1">
-        <div class="person-header"><div class="person-dot" style="background:#38bdf8"></div><div class="person-name">Nick</div></div>
-        <div class="person-station">&#128205; Canary Wharf</div>
-      </div>
-      <div class="person-card p2">
-        <div class="person-header"><div class="person-dot" style="background:#f43f8e"></div><div class="person-name">Harriet</div></div>
-        <div class="person-station">&#128205; Holborn</div>
-      </div>
-      <div class="select-row">
-        <div><label>Nick max</label>
-          <select id="p1-max">
-            <option value="30">30 min</option>
-            <option value="45" selected>45 min</option>
-            <option value="60">60 min</option>
-          </select>
-        </div>
-        <div><label>Harriet max</label>
-          <select id="p2-max">
-            <option value="30">30 min</option>
-            <option value="45" selected>45 min</option>
-            <option value="60">60 min</option>
-          </select>
-        </div>
-      </div>
-      <div class="transport-filter">
-        <button class="active" id="tf-both" onclick="setTransport('both')">&#128647;+&#128646; Both</button>
-        <button id="tf-tube" onclick="setTransport('tube')">&#128647; Tube</button>
-        <button id="tf-rail" onclick="setTransport('rail')">&#128646; Rail</button>
-      </div>
-      <button class="btn-primary" id="compute-btn" onclick="computeZones()">&#9654; Find Overlap Zone</button>
-      <button class="btn-secondary" id="clear-btn" onclick="clearResults()" style="display:none">&#10005; Clear Results</button>
+    <div class="tabs">
+      <div class="tab active" id="tab-search" onclick="switchTab('search')">&#128269; Search</div>
+      <div class="tab" id="tab-area" onclick="switchTab('area')">&#128205; Area Info</div>
+      <div class="tab" id="tab-results" onclick="switchTab('results')">&#127942; Results</div>
     </div>
-    <div class="section" id="results-section" style="display:none">
-      <div class="section-title">Results</div>
-      <div class="results-grid">
-        <div class="stat-box green"><div class="stat-value green" id="stat-ideal">-</div><div class="stat-label">Ideal Areas</div></div>
-        <div class="stat-box grey"><div class="stat-value grey" id="stat-reachable">-</div><div class="stat-label">Reachable</div></div>
+    <div class="tab-content active" id="content-search">
+      <div class="section">
+        <div class="section-title">Commute Settings</div>
+        <div class="person-card p1">
+          <div class="person-header"><div class="person-dot" style="background:#38bdf8"></div><div class="person-name">Nick</div></div>
+          <div class="person-station">&#128205; Canary Wharf</div>
+        </div>
+        <div class="person-card p2">
+          <div class="person-header"><div class="person-dot" style="background:#f43f8e"></div><div class="person-name">Harriet</div></div>
+          <div class="person-station">&#128205; Holborn</div>
+        </div>
+        <div class="select-row">
+          <div><label>Nick max</label>
+            <select id="p1-max">
+              <option value="30">30 min</option>
+              <option value="45" selected>45 min</option>
+              <option value="60">60 min</option>
+            </select>
+          </div>
+          <div><label>Harriet max</label>
+            <select id="p2-max">
+              <option value="30">30 min</option>
+              <option value="45" selected>45 min</option>
+              <option value="60">60 min</option>
+            </select>
+          </div>
+        </div>
+        <div class="transport-filter">
+          <button class="active" id="tf-both" onclick="setTransport('both')">&#128647;+&#128646; Both</button>
+          <button id="tf-tube" onclick="setTransport('tube')">&#128647; Tube</button>
+          <button id="tf-rail" onclick="setTransport('rail')">&#128646; Rail</button>
+        </div>
+        <button class="btn-primary" onclick="computeZones()">&#9654; Find Overlap Zone</button>
+        <button class="btn-secondary" id="clear-btn" onclick="clearResults()" style="display:none">&#10005; Clear Results</button>
       </div>
-      <div class="legend-item"><div class="legend-dot" style="background:rgba(132,204,22,0.6);border:1.5px solid #84cc16"></div>Both within limit</div>
-      <div class="legend-item"><div class="legend-dot" style="background:rgba(56,189,248,0.5)"></div>Nick only (Canary Wharf)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:rgba(244,63,142,0.5)"></div>Harriet only (Holborn)</div>
-      <p class="data-note" id="data-note"></p>
+      <div class="section" id="results-section" style="display:none">
+        <div class="section-title">Results</div>
+        <div class="results-grid">
+          <div class="stat-box green"><div class="stat-value green" id="stat-ideal">-</div><div class="stat-label">Ideal Areas</div></div>
+          <div class="stat-box grey"><div class="stat-value grey" id="stat-reachable">-</div><div class="stat-label">Reachable</div></div>
+        </div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(132,204,22,0.6);border:1.5px solid #84cc16"></div>Both within limit</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(56,189,248,0.5)"></div>Nick only</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(244,63,142,0.5)"></div>Harriet only</div>
+        <p class="data-note" id="data-note"></p>
+      </div>
+    </div>
+    <div class="tab-content" id="content-area">
+      <div id="area-placeholder" class="area-placeholder">
+        <div class="area-placeholder-icon">&#128205;</div>
+        <div class="area-placeholder-text">Click any bubble on the map to explore an area — estate agents, lifestyle stats, and leave your ratings.</div>
+      </div>
+      <div id="area-detail" style="display:none">
+        <div class="section">
+          <div class="area-title" id="ai-area-name"></div>
+          <div class="area-sub" id="ai-area-badge"></div>
+          <div class="area-commute" id="ai-area-commute1"></div>
+          <div class="area-commute" id="ai-area-commute2"></div>
+        </div>
+        <div class="section">
+          <div class="section-title">&#127968; Estate Agents Nearby</div>
+          <div id="ai-agents"></div>
+        </div>
+        <div class="section">
+          <div class="section-title">&#127759; Lifestyle &amp; Amenities</div>
+          <div id="ai-lifestyle-content"><div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading area data...</div></div>
+          <div id="ai-thirdspace" style="margin-top:8px"></div>
+        </div>
+        <div class="section">
+          <div class="section-title" style="color:#38bdf8">&#128309; Nick's Rating</div>
+          <div class="score-block">
+            <div class="score-row" id="nick-scores"></div>
+            <textarea class="comment-box" id="nick-comment" rows="2" placeholder="Nick's thoughts on this area..."></textarea>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title" style="color:#f43f8e">&#129145; Harriet's Rating</div>
+          <div class="score-block">
+            <div class="score-row" id="harriet-scores"></div>
+            <textarea class="comment-box" id="harriet-comment" rows="2" placeholder="Harriet's thoughts on this area..."></textarea>
+          </div>
+        </div>
+        <div class="section">
+          <button class="save-btn" onclick="saveRatings()">&#128190; Save Ratings</button>
+          <div class="save-confirm" id="save-confirm">&#10003; Saved!</div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-content" id="content-results">
+      <div class="section">
+        <div class="section-title">&#127942; Favourite Locations</div>
+        <div id="results-list"></div>
+      </div>
     </div>
   </div>
   <button class="toggle-btn" id="toggle-btn" onclick="toggleSidebar()">&#8249;</button>
   <div id="map"></div>
 </div>
-
 <script>
 var CW={lat:51.5051,lng:-0.0200};
 var HOL={lat:51.5174,lng:-0.1200};
 var transportFilter='both';
-
+var currentArea=null;
+var nickScore=0,harrietScore=0;
+var THIRD_SPACE=[
+  {name:"Third Space Soho",lat:51.5117,lng:-0.1341,addr:"67 Brewer Street, W1F 9US"},
+  {name:"Third Space Canary Wharf",lat:51.5054,lng:-0.0197,addr:"16-19 Canada Square, E14 5ER"},
+  {name:"Third Space Marylebone",lat:51.5197,lng:-0.1511,addr:"Bulstrode Place, W1U 2HU"},
+  {name:"Third Space Moorgate",lat:51.5185,lng:-0.0882,addr:"16 South Place, EC2M 2AQ"},
+  {name:"Third Space City",lat:51.5103,lng:-0.0788,addr:"40 Mark Lane, EC3R 7AT"},
+  {name:"Third Space Tower Bridge",lat:51.5045,lng:-0.0797,addr:"2b More London Riverside, SE1 2AP"},
+  {name:"Third Space Islington",lat:51.5364,lng:-0.1028,addr:"15 Esther Anne Place, N1 1UL"},
+  {name:"Third Space Battersea",lat:51.4816,lng:-0.1443,addr:"Prospect Way, Battersea Power Station, SW11 8BH"},
+  {name:"Third Space Clapham Junction",lat:51.4640,lng:-0.1693,addr:"Lavender Hill, SW11 1LN"},
+  {name:"Third Space Wimbledon",lat:51.4219,lng:-0.2060,addr:"4 Queen's Road, SW19 8YE"},
+  {name:"Third Space Richmond",lat:51.4633,lng:-0.3015,addr:"Richmond, TW9"},
+  {name:"Third Space Wood Wharf",lat:51.5017,lng:-0.0122,addr:"14 Charter Street, E14 5GZ"},
+  {name:"Third Space Mayfair",lat:51.5063,lng:-0.1455,addr:"22 Clarges Street, W1J 5FA"},
+  {name:"Third Space The Whiteley",lat:51.5117,lng:-0.1878,addr:"Queensway, W2 4YN"}
+];
 var AREAS=[
   {name:"Shoreditch",lat:51.5224,lng:-0.0776,transport:"tube"},
   {name:"Hackney",lat:51.5451,lng:-0.0553,transport:"tube"},
@@ -211,7 +318,6 @@ var AREAS=[
   {name:"Bexleyheath",lat:51.4595,lng:0.1451,transport:"rail"},
   {name:"Dartford",lat:51.4462,lng:0.2197,transport:"rail"}
 ];
-
 var JOURNEY_TIMES={
   "Shoreditch":{cw:18,hol:12},"Hackney":{cw:22,hol:20},"Islington":{cw:25,hol:15},
   "Stoke Newington":{cw:35,hol:25},"Dalston":{cw:28,hol:22},"Peckham":{cw:30,hol:28},
@@ -245,15 +351,126 @@ var JOURNEY_TIMES={
   "Eltham":{cw:38,hol:40},"Sidcup":{cw:45,hol:42},"Welling":{cw:48,hol:45},
   "Bexleyheath":{cw:50,hol:48},"Dartford":{cw:60,hol:58}
 };
-
+var AGENTS={
+  "Shoreditch":[{n:"Foxtons Shoreditch",u:"https://www.foxtons.co.uk/offices/shoreditch"},{n:"Savills Shoreditch",u:"https://www.savills.co.uk/offices/shoreditch"},{n:"Stirling Ackroyd Shoreditch",u:"https://www.stirlingackroyd.com/offices/shoreditch"}],
+  "Hackney":[{n:"Foxtons Hackney",u:"https://www.foxtons.co.uk/offices/hackney"},{n:"Winkworth Hackney",u:"https://www.winkworth.co.uk/offices/hackney"},{n:"Stirling Ackroyd Hackney",u:"https://www.stirlingackroyd.com/offices/hackney"}],
+  "Islington":[{n:"Foxtons Islington",u:"https://www.foxtons.co.uk/offices/islington"},{n:"Savills Islington",u:"https://www.savills.co.uk/offices/islington"},{n:"Winkworth Islington",u:"https://www.winkworth.co.uk/offices/islington"}],
+  "Stoke Newington":[{n:"Winkworth Stoke Newington",u:"https://www.winkworth.co.uk/offices/stoke-newington"},{n:"Stirling Ackroyd Stoke Newington",u:"https://www.stirlingackroyd.com/offices/stoke-newington"},{n:"Barnard Marcus Stoke Newington",u:"https://www.barnardmarcus.co.uk/offices/stoke-newington"}],
+  "Dalston":[{n:"Winkworth Dalston",u:"https://www.winkworth.co.uk/offices/dalston"},{n:"Stirling Ackroyd Dalston",u:"https://www.stirlingackroyd.com/offices/dalston"},{n:"Foxtons Dalston",u:"https://www.foxtons.co.uk/offices/dalston"}],
+  "Peckham":[{n:"Winkworth Peckham",u:"https://www.winkworth.co.uk/offices/peckham"},{n:"Stirling Ackroyd Peckham",u:"https://www.stirlingackroyd.com/offices/peckham"},{n:"Barnard Marcus Peckham",u:"https://www.barnardmarcus.co.uk/offices/peckham"}],
+  "Brixton":[{n:"Foxtons Brixton",u:"https://www.foxtons.co.uk/offices/brixton"},{n:"Winkworth Brixton",u:"https://www.winkworth.co.uk/offices/brixton"},{n:"Barnard Marcus Brixton",u:"https://www.barnardmarcus.co.uk/offices/brixton"}],
+  "Herne Hill":[{n:"Winkworth Herne Hill",u:"https://www.winkworth.co.uk/offices/herne-hill"},{n:"Barnard Marcus Herne Hill",u:"https://www.barnardmarcus.co.uk/offices/herne-hill"},{n:"Knight Frank Herne Hill",u:"https://www.knightfrank.co.uk/offices/herne-hill"}],
+  "Forest Hill":[{n:"Winkworth Forest Hill",u:"https://www.winkworth.co.uk/offices/forest-hill"},{n:"Barnard Marcus Forest Hill",u:"https://www.barnardmarcus.co.uk/offices/forest-hill"},{n:"Stirling Ackroyd Forest Hill",u:"https://www.stirlingackroyd.com/offices/forest-hill"}],
+  "Lewisham":[{n:"Foxtons Lewisham",u:"https://www.foxtons.co.uk/offices/lewisham"},{n:"Barnard Marcus Lewisham",u:"https://www.barnardmarcus.co.uk/offices/lewisham"},{n:"Winkworth Lewisham",u:"https://www.winkworth.co.uk/offices/lewisham"}],
+  "Greenwich":[{n:"Foxtons Greenwich",u:"https://www.foxtons.co.uk/offices/greenwich"},{n:"Knight Frank Greenwich",u:"https://www.knightfrank.co.uk/offices/greenwich"},{n:"Winkworth Greenwich",u:"https://www.winkworth.co.uk/offices/greenwich"}],
+  "Deptford":[{n:"Winkworth Deptford",u:"https://www.winkworth.co.uk/offices/deptford"},{n:"Stirling Ackroyd Deptford",u:"https://www.stirlingackroyd.com/offices/deptford"},{n:"Barnard Marcus Deptford",u:"https://www.barnardmarcus.co.uk/offices/deptford"}],
+  "Bermondsey":[{n:"Foxtons Bermondsey",u:"https://www.foxtons.co.uk/offices/bermondsey"},{n:"Savills Bermondsey",u:"https://www.savills.co.uk/offices/bermondsey"},{n:"Knight Frank Bermondsey",u:"https://www.knightfrank.co.uk/offices/bermondsey"}],
+  "Wapping":[{n:"Foxtons Wapping",u:"https://www.foxtons.co.uk/offices/wapping"},{n:"Savills Wapping",u:"https://www.savills.co.uk/offices/wapping"},{n:"Knight Frank Wapping",u:"https://www.knightfrank.co.uk/offices/wapping"}],
+  "Bethnal Green":[{n:"Foxtons Bethnal Green",u:"https://www.foxtons.co.uk/offices/bethnal-green"},{n:"Winkworth Bethnal Green",u:"https://www.winkworth.co.uk/offices/bethnal-green"},{n:"Stirling Ackroyd Bethnal Green",u:"https://www.stirlingackroyd.com/offices/bethnal-green"}],
+  "Mile End":[{n:"Foxtons Mile End",u:"https://www.foxtons.co.uk/offices/mile-end"},{n:"Winkworth Mile End",u:"https://www.winkworth.co.uk/offices/mile-end"},{n:"Stirling Ackroyd Mile End",u:"https://www.stirlingackroyd.com/offices/mile-end"}],
+  "Bow":[{n:"Foxtons Bow",u:"https://www.foxtons.co.uk/offices/bow"},{n:"Winkworth Bow",u:"https://www.winkworth.co.uk/offices/bow"},{n:"Stirling Ackroyd Bow",u:"https://www.stirlingackroyd.com/offices/bow"}],
+  "Stratford":[{n:"Foxtons Stratford",u:"https://www.foxtons.co.uk/offices/stratford"},{n:"Winkworth Stratford",u:"https://www.winkworth.co.uk/offices/stratford"},{n:"Stirling Ackroyd Stratford",u:"https://www.stirlingackroyd.com/offices/stratford"}],
+  "Leyton":[{n:"Winkworth Leyton",u:"https://www.winkworth.co.uk/offices/leyton"},{n:"Stirling Ackroyd Leyton",u:"https://www.stirlingackroyd.com/offices/leyton"},{n:"Barnard Marcus Leyton",u:"https://www.barnardmarcus.co.uk/offices/leyton"}],
+  "Walthamstow":[{n:"Winkworth Walthamstow",u:"https://www.winkworth.co.uk/offices/walthamstow"},{n:"Barnard Marcus Walthamstow",u:"https://www.barnardmarcus.co.uk/offices/walthamstow"},{n:"Stirling Ackroyd Walthamstow",u:"https://www.stirlingackroyd.com/offices/walthamstow"}],
+  "Crouch End":[{n:"Winkworth Crouch End",u:"https://www.winkworth.co.uk/offices/crouch-end"},{n:"Barnard Marcus Crouch End",u:"https://www.barnardmarcus.co.uk/offices/crouch-end"},{n:"Knight Frank Crouch End",u:"https://www.knightfrank.co.uk/offices/crouch-end"}],
+  "Finsbury Park":[{n:"Foxtons Finsbury Park",u:"https://www.foxtons.co.uk/offices/finsbury-park"},{n:"Winkworth Finsbury Park",u:"https://www.winkworth.co.uk/offices/finsbury-park"},{n:"Barnard Marcus Finsbury Park",u:"https://www.barnardmarcus.co.uk/offices/finsbury-park"}],
+  "Holloway":[{n:"Foxtons Holloway",u:"https://www.foxtons.co.uk/offices/holloway"},{n:"Winkworth Holloway",u:"https://www.winkworth.co.uk/offices/holloway"},{n:"Barnard Marcus Holloway",u:"https://www.barnardmarcus.co.uk/offices/holloway"}],
+  "Archway":[{n:"Winkworth Archway",u:"https://www.winkworth.co.uk/offices/archway"},{n:"Barnard Marcus Archway",u:"https://www.barnardmarcus.co.uk/offices/archway"},{n:"Foxtons Archway",u:"https://www.foxtons.co.uk/offices/archway"}],
+  "Highgate":[{n:"Savills Highgate",u:"https://www.savills.co.uk/offices/highgate"},{n:"Knight Frank Highgate",u:"https://www.knightfrank.co.uk/offices/highgate"},{n:"Winkworth Highgate",u:"https://www.winkworth.co.uk/offices/highgate"}],
+  "Muswell Hill":[{n:"Winkworth Muswell Hill",u:"https://www.winkworth.co.uk/offices/muswell-hill"},{n:"Barnard Marcus Muswell Hill",u:"https://www.barnardmarcus.co.uk/offices/muswell-hill"},{n:"Knight Frank Muswell Hill",u:"https://www.knightfrank.co.uk/offices/muswell-hill"}],
+  "East Finchley":[{n:"Winkworth East Finchley",u:"https://www.winkworth.co.uk/offices/east-finchley"},{n:"Barnard Marcus East Finchley",u:"https://www.barnardmarcus.co.uk/offices/east-finchley"},{n:"Savills East Finchley",u:"https://www.savills.co.uk/offices/east-finchley"}],
+  "Golders Green":[{n:"Winkworth Golders Green",u:"https://www.winkworth.co.uk/offices/golders-green"},{n:"Barnard Marcus Golders Green",u:"https://www.barnardmarcus.co.uk/offices/golders-green"},{n:"Savills Golders Green",u:"https://www.savills.co.uk/offices/golders-green"}],
+  "Hampstead":[{n:"Savills Hampstead",u:"https://www.savills.co.uk/offices/hampstead"},{n:"Knight Frank Hampstead",u:"https://www.knightfrank.co.uk/offices/hampstead"},{n:"Winkworth Hampstead",u:"https://www.winkworth.co.uk/offices/hampstead"}],
+  "Belsize Park":[{n:"Savills Belsize Park",u:"https://www.savills.co.uk/offices/belsize-park"},{n:"Knight Frank Belsize Park",u:"https://www.knightfrank.co.uk/offices/belsize-park"},{n:"Foxtons Belsize Park",u:"https://www.foxtons.co.uk/offices/belsize-park"}],
+  "Kentish Town":[{n:"Foxtons Kentish Town",u:"https://www.foxtons.co.uk/offices/kentish-town"},{n:"Winkworth Kentish Town",u:"https://www.winkworth.co.uk/offices/kentish-town"},{n:"Barnard Marcus Kentish Town",u:"https://www.barnardmarcus.co.uk/offices/kentish-town"}],
+  "Camden":[{n:"Foxtons Camden",u:"https://www.foxtons.co.uk/offices/camden"},{n:"Savills Camden",u:"https://www.savills.co.uk/offices/camden"},{n:"Winkworth Camden",u:"https://www.winkworth.co.uk/offices/camden"}],
+  "Tufnell Park":[{n:"Winkworth Tufnell Park",u:"https://www.winkworth.co.uk/offices/tufnell-park"},{n:"Foxtons Tufnell Park",u:"https://www.foxtons.co.uk/offices/tufnell-park"},{n:"Barnard Marcus Tufnell Park",u:"https://www.barnardmarcus.co.uk/offices/tufnell-park"}],
+  "Kilburn":[{n:"Foxtons Kilburn",u:"https://www.foxtons.co.uk/offices/kilburn"},{n:"Winkworth Kilburn",u:"https://www.winkworth.co.uk/offices/kilburn"},{n:"Barnard Marcus Kilburn",u:"https://www.barnardmarcus.co.uk/offices/kilburn"}],
+  "West Hampstead":[{n:"Foxtons West Hampstead",u:"https://www.foxtons.co.uk/offices/west-hampstead"},{n:"Savills West Hampstead",u:"https://www.savills.co.uk/offices/west-hampstead"},{n:"Winkworth West Hampstead",u:"https://www.winkworth.co.uk/offices/west-hampstead"}],
+  "Hendon":[{n:"Winkworth Hendon",u:"https://www.winkworth.co.uk/offices/hendon"},{n:"Barnard Marcus Hendon",u:"https://www.barnardmarcus.co.uk/offices/hendon"},{n:"Savills Hendon",u:"https://www.savills.co.uk/offices/hendon"}],
+  "Wembley":[{n:"Barnard Marcus Wembley",u:"https://www.barnardmarcus.co.uk/offices/wembley"},{n:"Winkworth Wembley",u:"https://www.winkworth.co.uk/offices/wembley"},{n:"Foxtons Wembley",u:"https://www.foxtons.co.uk/offices/wembley"}],
+  "Harlesden":[{n:"Barnard Marcus Harlesden",u:"https://www.barnardmarcus.co.uk/offices/harlesden"},{n:"Winkworth Harlesden",u:"https://www.winkworth.co.uk/offices/harlesden"},{n:"Foxtons Harlesden",u:"https://www.foxtons.co.uk/offices/harlesden"}],
+  "Willesden":[{n:"Winkworth Willesden",u:"https://www.winkworth.co.uk/offices/willesden"},{n:"Barnard Marcus Willesden",u:"https://www.barnardmarcus.co.uk/offices/willesden"},{n:"Foxtons Willesden",u:"https://www.foxtons.co.uk/offices/willesden"}],
+  "Queen's Park":[{n:"Foxtons Queen's Park",u:"https://www.foxtons.co.uk/offices/queens-park"},{n:"Savills Queen's Park",u:"https://www.savills.co.uk/offices/queens-park"},{n:"Winkworth Queen's Park",u:"https://www.winkworth.co.uk/offices/queens-park"}],
+  "Maida Vale":[{n:"Foxtons Maida Vale",u:"https://www.foxtons.co.uk/offices/maida-vale"},{n:"Savills Maida Vale",u:"https://www.savills.co.uk/offices/maida-vale"},{n:"Knight Frank Maida Vale",u:"https://www.knightfrank.co.uk/offices/maida-vale"}],
+  "Notting Hill":[{n:"Savills Notting Hill",u:"https://www.savills.co.uk/offices/notting-hill"},{n:"Knight Frank Notting Hill",u:"https://www.knightfrank.co.uk/offices/notting-hill"},{n:"Foxtons Notting Hill",u:"https://www.foxtons.co.uk/offices/notting-hill"}],
+  "Ladbroke Grove":[{n:"Foxtons Ladbroke Grove",u:"https://www.foxtons.co.uk/offices/ladbroke-grove"},{n:"Winkworth Ladbroke Grove",u:"https://www.winkworth.co.uk/offices/ladbroke-grove"},{n:"Savills Ladbroke Grove",u:"https://www.savills.co.uk/offices/ladbroke-grove"}],
+  "Shepherd's Bush":[{n:"Foxtons Shepherd's Bush",u:"https://www.foxtons.co.uk/offices/shepherds-bush"},{n:"Winkworth Shepherd's Bush",u:"https://www.winkworth.co.uk/offices/shepherds-bush"},{n:"Barnard Marcus Shepherd's Bush",u:"https://www.barnardmarcus.co.uk/offices/shepherds-bush"}],
+  "Hammersmith":[{n:"Foxtons Hammersmith",u:"https://www.foxtons.co.uk/offices/hammersmith"},{n:"Savills Hammersmith",u:"https://www.savills.co.uk/offices/hammersmith"},{n:"Knight Frank Hammersmith",u:"https://www.knightfrank.co.uk/offices/hammersmith"}],
+  "Chiswick":[{n:"Savills Chiswick",u:"https://www.savills.co.uk/offices/chiswick"},{n:"Knight Frank Chiswick",u:"https://www.knightfrank.co.uk/offices/chiswick"},{n:"Foxtons Chiswick",u:"https://www.foxtons.co.uk/offices/chiswick"}],
+  "Acton":[{n:"Foxtons Acton",u:"https://www.foxtons.co.uk/offices/acton"},{n:"Winkworth Acton",u:"https://www.winkworth.co.uk/offices/acton"},{n:"Barnard Marcus Acton",u:"https://www.barnardmarcus.co.uk/offices/acton"}],
+  "Ealing":[{n:"Savills Ealing",u:"https://www.savills.co.uk/offices/ealing"},{n:"Winkworth Ealing",u:"https://www.winkworth.co.uk/offices/ealing"},{n:"Barnard Marcus Ealing",u:"https://www.barnardmarcus.co.uk/offices/ealing"}],
+  "West Kensington":[{n:"Foxtons West Kensington",u:"https://www.foxtons.co.uk/offices/west-kensington"},{n:"Savills West Kensington",u:"https://www.savills.co.uk/offices/west-kensington"},{n:"Knight Frank West Kensington",u:"https://www.knightfrank.co.uk/offices/west-kensington"}],
+  "Fulham":[{n:"Foxtons Fulham",u:"https://www.foxtons.co.uk/offices/fulham"},{n:"Savills Fulham",u:"https://www.savills.co.uk/offices/fulham"},{n:"Knight Frank Fulham",u:"https://www.knightfrank.co.uk/offices/fulham"}],
+  "Parsons Green":[{n:"Foxtons Parsons Green",u:"https://www.foxtons.co.uk/offices/parsons-green"},{n:"Savills Parsons Green",u:"https://www.savills.co.uk/offices/parsons-green"},{n:"Knight Frank Parsons Green",u:"https://www.knightfrank.co.uk/offices/parsons-green"}],
+  "Putney":[{n:"Foxtons Putney",u:"https://www.foxtons.co.uk/offices/putney"},{n:"Savills Putney",u:"https://www.savills.co.uk/offices/putney"},{n:"Knight Frank Putney",u:"https://www.knightfrank.co.uk/offices/putney"}],
+  "Wandsworth":[{n:"Foxtons Wandsworth",u:"https://www.foxtons.co.uk/offices/wandsworth"},{n:"Savills Wandsworth",u:"https://www.savills.co.uk/offices/wandsworth"},{n:"Winkworth Wandsworth",u:"https://www.winkworth.co.uk/offices/wandsworth"}],
+  "Clapham":[{n:"Foxtons Clapham",u:"https://www.foxtons.co.uk/offices/clapham"},{n:"Savills Clapham",u:"https://www.savills.co.uk/offices/clapham"},{n:"Winkworth Clapham",u:"https://www.winkworth.co.uk/offices/clapham"}],
+  "Balham":[{n:"Foxtons Balham",u:"https://www.foxtons.co.uk/offices/balham"},{n:"Winkworth Balham",u:"https://www.winkworth.co.uk/offices/balham"},{n:"Barnard Marcus Balham",u:"https://www.barnardmarcus.co.uk/offices/balham"}],
+  "Tooting":[{n:"Foxtons Tooting",u:"https://www.foxtons.co.uk/offices/tooting"},{n:"Winkworth Tooting",u:"https://www.winkworth.co.uk/offices/tooting"},{n:"Barnard Marcus Tooting",u:"https://www.barnardmarcus.co.uk/offices/tooting"}],
+  "Wimbledon":[{n:"Savills Wimbledon",u:"https://www.savills.co.uk/offices/wimbledon"},{n:"Knight Frank Wimbledon",u:"https://www.knightfrank.co.uk/offices/wimbledon"},{n:"Foxtons Wimbledon",u:"https://www.foxtons.co.uk/offices/wimbledon"}],
+  "Crystal Palace":[{n:"Winkworth Crystal Palace",u:"https://www.winkworth.co.uk/offices/crystal-palace"},{n:"Barnard Marcus Crystal Palace",u:"https://www.barnardmarcus.co.uk/offices/crystal-palace"},{n:"Stirling Ackroyd Crystal Palace",u:"https://www.stirlingackroyd.com/offices/crystal-palace"}],
+  "Sydenham":[{n:"Winkworth Sydenham",u:"https://www.winkworth.co.uk/offices/sydenham"},{n:"Barnard Marcus Sydenham",u:"https://www.barnardmarcus.co.uk/offices/sydenham"},{n:"Stirling Ackroyd Sydenham",u:"https://www.stirlingackroyd.com/offices/sydenham"}],
+  "New Cross":[{n:"Winkworth New Cross",u:"https://www.winkworth.co.uk/offices/new-cross"},{n:"Stirling Ackroyd New Cross",u:"https://www.stirlingackroyd.com/offices/new-cross"},{n:"Barnard Marcus New Cross",u:"https://www.barnardmarcus.co.uk/offices/new-cross"}],
+  "Surrey Quays":[{n:"Foxtons Surrey Quays",u:"https://www.foxtons.co.uk/offices/surrey-quays"},{n:"Savills Surrey Quays",u:"https://www.savills.co.uk/offices/surrey-quays"},{n:"Winkworth Surrey Quays",u:"https://www.winkworth.co.uk/offices/surrey-quays"}],
+  "Vauxhall":[{n:"Foxtons Vauxhall",u:"https://www.foxtons.co.uk/offices/vauxhall"},{n:"Savills Vauxhall",u:"https://www.savills.co.uk/offices/vauxhall"},{n:"Knight Frank Vauxhall",u:"https://www.knightfrank.co.uk/offices/vauxhall"}],
+  "Kennington":[{n:"Foxtons Kennington",u:"https://www.foxtons.co.uk/offices/kennington"},{n:"Winkworth Kennington",u:"https://www.winkworth.co.uk/offices/kennington"},{n:"Barnard Marcus Kennington",u:"https://www.barnardmarcus.co.uk/offices/kennington"}],
+  "Stockwell":[{n:"Foxtons Stockwell",u:"https://www.foxtons.co.uk/offices/stockwell"},{n:"Winkworth Stockwell",u:"https://www.winkworth.co.uk/offices/stockwell"},{n:"Barnard Marcus Stockwell",u:"https://www.barnardmarcus.co.uk/offices/stockwell"}],
+  "Elephant & Castle":[{n:"Foxtons Elephant & Castle",u:"https://www.foxtons.co.uk/offices/elephant-castle"},{n:"Savills Elephant & Castle",u:"https://www.savills.co.uk/offices/elephant-castle"},{n:"Stirling Ackroyd Elephant & Castle",u:"https://www.stirlingackroyd.com/offices/elephant-castle"}],
+  "Borough":[{n:"Savills Borough",u:"https://www.savills.co.uk/offices/borough"},{n:"Knight Frank Borough",u:"https://www.knightfrank.co.uk/offices/borough"},{n:"Foxtons Borough",u:"https://www.foxtons.co.uk/offices/borough"}],
+  "Southwark":[{n:"Savills Southwark",u:"https://www.savills.co.uk/offices/southwark"},{n:"Knight Frank Southwark",u:"https://www.knightfrank.co.uk/offices/southwark"},{n:"Foxtons Southwark",u:"https://www.foxtons.co.uk/offices/southwark"}],
+  "Clapham Junction":[{n:"Foxtons Clapham Junction",u:"https://www.foxtons.co.uk/offices/clapham-junction"},{n:"Winkworth Clapham Junction",u:"https://www.winkworth.co.uk/offices/clapham-junction"},{n:"Barnard Marcus Clapham Junction",u:"https://www.barnardmarcus.co.uk/offices/clapham-junction"}],
+  "Streatham":[{n:"Winkworth Streatham",u:"https://www.winkworth.co.uk/offices/streatham"},{n:"Barnard Marcus Streatham",u:"https://www.barnardmarcus.co.uk/offices/streatham"},{n:"Foxtons Streatham",u:"https://www.foxtons.co.uk/offices/streatham"}],
+  "Brockley":[{n:"Winkworth Brockley",u:"https://www.winkworth.co.uk/offices/brockley"},{n:"Stirling Ackroyd Brockley",u:"https://www.stirlingackroyd.com/offices/brockley"},{n:"Barnard Marcus Brockley",u:"https://www.barnardmarcus.co.uk/offices/brockley"}],
+  "Honor Oak Park":[{n:"Winkworth Honor Oak Park",u:"https://www.winkworth.co.uk/offices/honor-oak-park"},{n:"Barnard Marcus Honor Oak Park",u:"https://www.barnardmarcus.co.uk/offices/honor-oak-park"},{n:"Stirling Ackroyd Honor Oak Park",u:"https://www.stirlingackroyd.com/offices/honor-oak-park"}],
+  "Richmond":[{n:"Savills Richmond",u:"https://www.savills.co.uk/offices/richmond"},{n:"Knight Frank Richmond",u:"https://www.knightfrank.co.uk/offices/richmond"},{n:"Foxtons Richmond",u:"https://www.foxtons.co.uk/offices/richmond"}],
+  "Earlsfield":[{n:"Foxtons Earlsfield",u:"https://www.foxtons.co.uk/offices/earlsfield"},{n:"Winkworth Earlsfield",u:"https://www.winkworth.co.uk/offices/earlsfield"},{n:"Barnard Marcus Earlsfield",u:"https://www.barnardmarcus.co.uk/offices/earlsfield"}],
+  "Wimbledon Chase":[{n:"Savills Wimbledon",u:"https://www.savills.co.uk/offices/wimbledon"},{n:"Knight Frank Wimbledon",u:"https://www.knightfrank.co.uk/offices/wimbledon"},{n:"Winkworth Wimbledon",u:"https://www.winkworth.co.uk/offices/wimbledon"}],
+  "Raynes Park":[{n:"Savills Raynes Park",u:"https://www.savills.co.uk/offices/raynes-park"},{n:"Winkworth Raynes Park",u:"https://www.winkworth.co.uk/offices/raynes-park"},{n:"Barnard Marcus Raynes Park",u:"https://www.barnardmarcus.co.uk/offices/raynes-park"}],
+  "New Malden":[{n:"Winkworth New Malden",u:"https://www.winkworth.co.uk/offices/new-malden"},{n:"Barnard Marcus New Malden",u:"https://www.barnardmarcus.co.uk/offices/new-malden"},{n:"Savills New Malden",u:"https://www.savills.co.uk/offices/new-malden"}],
+  "Kingston":[{n:"Savills Kingston",u:"https://www.savills.co.uk/offices/kingston"},{n:"Knight Frank Kingston",u:"https://www.knightfrank.co.uk/offices/kingston"},{n:"Winkworth Kingston",u:"https://www.winkworth.co.uk/offices/kingston"}],
+  "Norbiton":[{n:"Winkworth Kingston",u:"https://www.winkworth.co.uk/offices/kingston"},{n:"Savills Kingston",u:"https://www.savills.co.uk/offices/kingston"},{n:"Barnard Marcus Kingston",u:"https://www.barnardmarcus.co.uk/offices/kingston"}],
+  "Surbiton":[{n:"Savills Surbiton",u:"https://www.savills.co.uk/offices/surbiton"},{n:"Winkworth Surbiton",u:"https://www.winkworth.co.uk/offices/surbiton"},{n:"Knight Frank Surbiton",u:"https://www.knightfrank.co.uk/offices/surbiton"}],
+  "Berrylands":[{n:"Winkworth Surbiton",u:"https://www.winkworth.co.uk/offices/surbiton"},{n:"Savills Surbiton",u:"https://www.savills.co.uk/offices/surbiton"},{n:"Barnard Marcus Surbiton",u:"https://www.barnardmarcus.co.uk/offices/surbiton"}],
+  "Tolworth":[{n:"Winkworth Tolworth",u:"https://www.winkworth.co.uk/offices/tolworth"},{n:"Barnard Marcus Tolworth",u:"https://www.barnardmarcus.co.uk/offices/tolworth"},{n:"Savills Surbiton",u:"https://www.savills.co.uk/offices/surbiton"}],
+  "Twickenham":[{n:"Savills Twickenham",u:"https://www.savills.co.uk/offices/twickenham"},{n:"Knight Frank Twickenham",u:"https://www.knightfrank.co.uk/offices/twickenham"},{n:"Winkworth Twickenham",u:"https://www.winkworth.co.uk/offices/twickenham"}],
+  "Teddington":[{n:"Savills Teddington",u:"https://www.savills.co.uk/offices/teddington"},{n:"Knight Frank Teddington",u:"https://www.knightfrank.co.uk/offices/teddington"},{n:"Winkworth Teddington",u:"https://www.winkworth.co.uk/offices/teddington"}],
+  "Hampton":[{n:"Savills Hampton",u:"https://www.savills.co.uk/offices/hampton"},{n:"Winkworth Hampton",u:"https://www.winkworth.co.uk/offices/hampton"},{n:"Knight Frank Hampton",u:"https://www.knightfrank.co.uk/offices/hampton"}],
+  "Esher":[{n:"Savills Esher",u:"https://www.savills.co.uk/offices/esher"},{n:"Knight Frank Esher",u:"https://www.knightfrank.co.uk/offices/esher"},{n:"Winkworth Esher",u:"https://www.winkworth.co.uk/offices/esher"}],
+  "Walton-on-Thames":[{n:"Savills Walton-on-Thames",u:"https://www.savills.co.uk/offices/walton-on-thames"},{n:"Knight Frank Walton-on-Thames",u:"https://www.knightfrank.co.uk/offices/walton-on-thames"},{n:"Winkworth Walton-on-Thames",u:"https://www.winkworth.co.uk/offices/walton-on-thames"}],
+  "Eltham":[{n:"Winkworth Eltham",u:"https://www.winkworth.co.uk/offices/eltham"},{n:"Barnard Marcus Eltham",u:"https://www.barnardmarcus.co.uk/offices/eltham"},{n:"Stirling Ackroyd Eltham",u:"https://www.stirlingackroyd.com/offices/eltham"}],
+  "Sidcup":[{n:"Winkworth Sidcup",u:"https://www.winkworth.co.uk/offices/sidcup"},{n:"Barnard Marcus Sidcup",u:"https://www.barnardmarcus.co.uk/offices/sidcup"},{n:"Stirling Ackroyd Sidcup",u:"https://www.stirlingackroyd.com/offices/sidcup"}],
+  "Welling":[{n:"Winkworth Welling",u:"https://www.winkworth.co.uk/offices/welling"},{n:"Barnard Marcus Welling",u:"https://www.barnardmarcus.co.uk/offices/welling"},{n:"Stirling Ackroyd Welling",u:"https://www.stirlingackroyd.com/offices/welling"}],
+  "Bexleyheath":[{n:"Winkworth Bexleyheath",u:"https://www.winkworth.co.uk/offices/bexleyheath"},{n:"Barnard Marcus Bexleyheath",u:"https://www.barnardmarcus.co.uk/offices/bexleyheath"},{n:"Stirling Ackroyd Bexleyheath",u:"https://www.stirlingackroyd.com/offices/bexleyheath"}],
+  "Dartford":[{n:"Winkworth Dartford",u:"https://www.winkworth.co.uk/offices/dartford"},{n:"Barnard Marcus Dartford",u:"https://www.barnardmarcus.co.uk/offices/dartford"},{n:"Savills Dartford",u:"https://www.savills.co.uk/offices/dartford"}]
+};
 var renderer=L.svg({padding:0.5});
 var map=L.map('map',{center:[51.505,-0.06],zoom:11,zoomControl:false});
 L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(map);
-
-var layers={commute:L.layerGroup().addTo(map),markers:L.layerGroup().addTo(map)};
-
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+var layers={commute:L.layerGroup().addTo(map),markers:L.layerGroup().addTo(map),thirdspace:L.layerGroup().addTo(map)};
+THIRD_SPACE.forEach(function(ts){
+  var icon=L.divIcon({html:'<div class="ts-marker">3S</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
+  L.marker([ts.lat,ts.lng],{icon:icon}).bindPopup('<b style="font-size:13px">'+ts.name+'</b><br><span style="font-size:11px;color:#6b7280">'+ts.addr+'</span>').addTo(layers.thirdspace);
+});
+function haversine(lat1,lon1,lat2,lon2){
+  var R=3958.8,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function nearestTS(lat,lng){
+  var best=null,bestDist=999;
+  THIRD_SPACE.forEach(function(ts){var d=haversine(lat,lng,ts.lat,ts.lng);if(d<bestDist){bestDist=d;best=ts;}});
+  return{gym:best,miles:bestDist};
+}
 var sidebarOpen=true;
+function switchTab(t){
+  ['search','area','results'].forEach(function(n){
+    document.getElementById('tab-'+n).className='tab'+(n===t?' active':'');
+    document.getElementById('content-'+n).className='tab-content'+(n===t?' active':'');
+  });
+  if(t==='results')renderResults();
+}
 function toggleSidebar(){
   sidebarOpen=!sidebarOpen;
   document.getElementById('sidebar').classList.toggle('collapsed',!sidebarOpen);
@@ -262,47 +479,31 @@ function toggleSidebar(){
   btn.classList.toggle('collapsed',!sidebarOpen);
   btn.style.left=sidebarOpen?'300px':'0';
 }
-
 function setTransport(t){
   transportFilter=t;
-  ['both','tube','rail'].forEach(function(v){
-    document.getElementById('tf-'+v).className=v===t?'active':'';
-  });
+  ['both','tube','rail'].forEach(function(v){document.getElementById('tf-'+v).className=v===t?'active':'';});
 }
-
 function computeZones(){
   var p1Max=parseInt(document.getElementById('p1-max').value);
   var p2Max=parseInt(document.getElementById('p2-max').value);
-  var activeAreas=AREAS.filter(function(a){
-    if(transportFilter==='both')return true;
-    return a.transport===transportFilter||a.transport==='both';
-  });
-  layers.commute.clearLayers();
-  layers.markers.clearLayers();
+  var activeAreas=AREAS.filter(function(a){if(transportFilter==='both')return true;return a.transport===transportFilter||a.transport==='both';});
+  layers.commute.clearLayers();layers.markers.clearLayers();
   document.getElementById('results-section').style.display='none';
   var ideal=0,reach=0;
   activeAreas.forEach(function(area){
-    var times=JOURNEY_TIMES[area.name];
-    if(!times)return;
+    var times=JOURNEY_TIMES[area.name];if(!times)return;
     var t1=times.cw,t2=times.hol;
     var inP1=t1<=p1Max,inP2=t2<=p2Max;
     if(!inP1&&!inP2)return;
     var both=inP1&&inP2;
-    if(both){ideal++;} reach++;
+    if(both){ideal++;}reach++;
     var color=both?'#84cc16':inP1?'#38bdf8':'#f43f8e';
-    L.circle([area.lat,area.lng],{
-      renderer:renderer,radius:1100,
-      fillColor:color,color:both?'#65a30d':'transparent',
-      weight:both?1.5:0,fillOpacity:both?0.45:0.32
-    }).bindPopup(
-      '<b style="color:'+(both?'#16a34a':color)+'">'+( both?'&#9733; ':'' )+area.name+'</b>'+
-      '<div style="font-size:11px;color:#6b7280;margin:2px 0 8px">'+( both?'Ideal for both':'Reachable by one' )+'</div>'+
-      '<div style="font-size:13px;margin-bottom:4px">&#128309; Nick &rarr; Canary Wharf: <b>'+t1+' min</b></div>'+
-      '<div style="font-size:13px">&#129145; Harriet &rarr; Holborn: <b>'+t2+' min</b></div>'+
-      '<div style="font-size:10px;color:#9ca3af;margin-top:8px">Typical weekday peak</div>'
-    ).addTo(layers.commute);
+    var circle=L.circle([area.lat,area.lng],{renderer:renderer,radius:1100,fillColor:color,color:both?'#65a30d':'transparent',weight:both?1.5:0,fillOpacity:both?0.45:0.32})
+      .bindPopup('<b style="color:'+(both?'#16a34a':color)+'">'+(both?'&#9733; ':'')+area.name+'</b><div style="font-size:11px;color:#6b7280;margin:2px 0 6px">'+(both?'Ideal for both':'Reachable by one')+'</div><div style="font-size:12px;margin-bottom:2px">&#128309; Nick: <b>'+t1+' min</b></div><div style="font-size:12px">&#129145; Harriet: <b>'+t2+' min</b></div>')
+      .addTo(layers.commute);
+    circle.on('click',function(){openAreaInfo(area,t1,t2,both);});
   });
-  function mkIcon(lbl,col){return L.divIcon({html:'<div style="background:'+col+';width:36px;height:36px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)">'+lbl+'</div>',className:'',iconSize:[36,36],iconAnchor:[18,18]});}
+  function mkIcon(lbl,col){return L.divIcon({html:'<div style="background:'+col+';width:32px;height:32px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)">'+lbl+'</div>',className:'',iconSize:[32,32],iconAnchor:[16,16]});}
   L.marker([CW.lat,CW.lng],{icon:mkIcon('CW','#38bdf8')}).bindPopup('<b>Canary Wharf</b><br>Nick').addTo(layers.markers);
   L.marker([HOL.lat,HOL.lng],{icon:mkIcon('HOL','#f43f8e')}).bindPopup('<b>Holborn</b><br>Harriet').addTo(layers.markers);
   document.getElementById('stat-ideal').textContent=ideal;
@@ -310,16 +511,117 @@ function computeZones(){
   document.getElementById('results-section').style.display='block';
   document.getElementById('header-status').textContent=ideal+' ideal areas found';
   document.getElementById('clear-btn').style.display='block';
-  document.getElementById('data-note').textContent='Typical weekday peak times. Tap a bubble for details.';
+  document.getElementById('data-note').textContent='Tap a bubble to explore the area.';
 }
-
 function clearResults(){
-  layers.commute.clearLayers();
-  layers.markers.clearLayers();
+  layers.commute.clearLayers();layers.markers.clearLayers();
   document.getElementById('results-section').style.display='none';
   document.getElementById('clear-btn').style.display='none';
-  document.getElementById('header-status').textContent='Avg weekday commute times';
+  document.getElementById('header-status').textContent='Find your overlap zone';
+}
+function openAreaInfo(area,t1,t2,both){
+  currentArea=area.name;nickScore=0;harrietScore=0;
+  switchTab('area');
+  document.getElementById('area-placeholder').style.display='none';
+  document.getElementById('area-detail').style.display='block';
+  document.getElementById('ai-area-name').textContent=(both?'★ ':'')+area.name;
+  document.getElementById('ai-area-badge').textContent=both?'Ideal for both':'Reachable by one';
+  document.getElementById('ai-area-commute1').textContent='🔵 Nick → Canary Wharf: '+t1+' min';
+  document.getElementById('ai-area-commute2').textContent='🩷 Harriet → Holborn: '+t2+' min';
+  var agents=AGENTS[area.name]||[];
+  document.getElementById('ai-agents').innerHTML=agents.map(function(a){return '<a class="agent-link" href="'+a.u+'" target="_blank">'+a.n+'</a>';}).join('');
+  var ts=nearestTS(area.lat,area.lng);
+  var tsMiles=ts.miles.toFixed(1);
+  var tsClass=ts.miles<=1.5?'ts-nearby':'ts-far';
+  var tsIcon=ts.miles<=1.5?'&#127947;':'&#128205;';
+  document.getElementById('ai-thirdspace').innerHTML='<div class="'+tsClass+'">'+tsIcon+' Nearest Third Space: <b>'+ts.gym.name.replace('Third Space ','')+'</b> ('+tsMiles+' miles)</div>';
+  var saved=getSaved(area.name);
+  nickScore=saved.nickScore||0;harrietScore=saved.harrietScore||0;
+  renderScoreButtons('nick-scores','nick',nickScore);
+  renderScoreButtons('harriet-scores','harriet',harrietScore);
+  document.getElementById('nick-comment').value=saved.nickComment||'';
+  document.getElementById('harriet-comment').value=saved.harrietComment||'';
+  document.getElementById('save-confirm').style.display='none';
+  document.getElementById('ai-lifestyle-content').innerHTML='<div class="lifestyle-loading">&#9679;&#9679;&#9679; Asking Claude about '+area.name+'...</div>';
+  fetchLifestyle(area.name);
+}
+function renderScoreButtons(containerId,person,selected){
+  var html='';
+  for(var i=1;i<=10;i++){
+    html+='<button class="score-btn'+(selected===i?' active-'+person:'')+'" onclick="setScore(\''+person+'\','+i+')">'+i+'</button>';
+  }
+  document.getElementById(containerId).innerHTML=html;
+}
+function setScore(person,val){
+  if(person==='nick'){nickScore=val;renderScoreButtons('nick-scores','nick',val);}
+  else{harrietScore=val;renderScoreButtons('harriet-scores','harriet',val);}
+}
+function getSaved(name){try{return JSON.parse(localStorage.getItem('area_'+name))||{};}catch(e){return{};}}
+function saveRatings(){
+  if(!currentArea)return;
+  var data={nickScore:nickScore,harrietScore:harrietScore,nickComment:document.getElementById('nick-comment').value,harrietComment:document.getElementById('harriet-comment').value};
+  try{localStorage.setItem('area_'+currentArea,JSON.stringify(data));}catch(e){}
+  document.getElementById('save-confirm').style.display='block';
+  setTimeout(function(){document.getElementById('save-confirm').style.display='none';},2000);
+}
+function renderResults(){
+  var rated=[];
+  AREAS.forEach(function(a){
+    var saved=getSaved(a.name);
+    if(saved.nickScore||saved.harrietScore){
+      rated.push({name:a.name,nickScore:saved.nickScore||0,harrietScore:saved.harrietScore||0,nickComment:saved.nickComment||'',harrietComment:saved.harrietComment||'',total:(saved.nickScore||0)+(saved.harrietScore||0)});
+    }
+  });
+  rated.sort(function(a,b){return b.total-a.total;});
+  var el=document.getElementById('results-list');
+  if(!rated.length){
+    el.innerHTML='<div class="results-empty"><div style="font-size:32px;margin-bottom:10px">&#127942;</div><div style="font-size:13px;color:#9ca3af">No areas rated yet.<br>Click a bubble on the map<br>to start scoring areas.</div></div>';
+    return;
+  }
+  var cardClasses=['top1','top2','top3'];
+  el.innerHTML=rated.map(function(r,i){
+    var cls=i<3?cardClasses[i]:'';
+    var comment=r.nickComment||r.harrietComment||'';
+    return '<div class="result-card '+cls+'" onclick="jumpToArea(\''+r.name+'\')">'+
+      '<div class="result-header"><div class="result-name">'+(i===0?'&#9733; ':'')+r.name+'<span class="rank-badge">#'+(i+1)+'</span></div>'+
+      '<div class="result-total" style="color:'+(i===0?'#16a34a':i===1?'#d97706':'#ea580c')+'">'+r.total+'/20</div></div>'+
+      '<div class="result-scores"><span>&#128309; Nick: <b>'+r.nickScore+'/10</b></span><span>&#129145; Harriet: <b>'+r.harrietScore+'/10</b></span></div>'+
+      (comment?'<div class="result-comment">"'+comment.substring(0,60)+(comment.length>60?'...':'')+'"</div>':'')+
+    '</div>';
+  }).join('');
+}
+function jumpToArea(name){
+  var area=AREAS.find(function(a){return a.name===name;});
+  if(!area)return;
+  map.panTo([area.lat,area.lng]);
+  switchTab('search');
+}
+async function fetchLifestyle(areaName){
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:300,
+        system:'You are a London local knowledge expert. Respond ONLY with valid JSON, no markdown, no explanation. Format: {"pubs_bars_restaurants":NUMBER,"coffee_shops":NUMBER,"vibe":"2-3 word description"}',
+        messages:[{role:'user',content:'Estimate the approximate number of pubs/bars/restaurants within 1 mile of '+areaName+' in London, the number of coffee shops within 1 mile, and describe the area vibe in 2-3 words. Return only JSON.'}]
+      })
+    });
+    var data=await resp.json();
+    var text=data.content&&data.content[0]?data.content[0].text:'';
+    var parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    document.getElementById('ai-lifestyle-content').innerHTML=
+      '<div class="lifestyle-grid">'+
+        '<div class="lifestyle-stat"><div class="lifestyle-num">'+parsed.pubs_bars_restaurants+'</div><div class="lifestyle-lbl">Pubs, Bars &amp; Restaurants</div></div>'+
+        '<div class="lifestyle-stat"><div class="lifestyle-num">'+parsed.coffee_shops+'</div><div class="lifestyle-lbl">Coffee Shops</div></div>'+
+        '<div class="lifestyle-stat"><div class="lifestyle-num" style="font-size:12px;padding-top:4px">'+parsed.vibe+'</div><div class="lifestyle-lbl">Area Vibe</div></div>'+
+      '</div>';
+  }catch(e){
+    document.getElementById('ai-lifestyle-content').innerHTML='<div class="lifestyle-loading" style="color:#f43f8e">Could not load lifestyle data</div>';
+  }
 }
 </script>
 </body>
 </html>
+```
