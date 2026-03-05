@@ -827,9 +827,7 @@ async function computeZones(){
   activeAreas.forEach(function(area){
     var jt=JOURNEY_TIMES[area.name];
     if(jt){
-      journeyTimes[area.name]={cw:jt.cw,hol:jt.hol,live:false};
-    } else {
-      journeyTimes[area.name]={cw:null,hol:null,live:false,explore:true};
+      journeyTimes[area.name]={cw:jt.cw,hol:jt.hol};
     }
   });
 
@@ -839,19 +837,6 @@ async function computeZones(){
   activeAreas.forEach(function(area){
     var jt=journeyTimes[area.name]; if(!jt)return;
 
-    // Explore mode (no lasso): show all stations as light grey bubbles
-    if(jt.explore){
-      var circle=L.circle([area.lat,area.lng],{
-        renderer:renderer,radius:r,
-        fillColor:'#94a3b8',color:'transparent',
-        weight:0,fillOpacity:0.18
-      }).bindPopup(
-        '<b style="color:#475569">'+area.name+'</b>'+
-        '<div style="font-size:11px;color:#6b7280;margin:2px 0 6px">🤠 Lasso this area to check commute times</div>'
-      ).addTo(layers.commute);
-      zoomCircles.push(circle);
-      return;
-    }
     var t1=jt.cw, t2=jt.hol;
     if(t1===null&&t2===null)return;
     var inP1=t1!==null&&t1<=p1Max;
