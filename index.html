@@ -830,10 +830,10 @@ async function computeZones(){
   var p1Max=parseInt(document.getElementById('p1-max').value);
   var p2Max=parseInt(document.getElementById('p2-max').value);
   var useLasso=lassoPolygon!==null;
+  alert('useLasso='+useLasso+', lassoPolygon='+(lassoPolygon?'SET':'NULL'));
   var activeAreas=AREAS.filter(function(a){
-    var transportOk=(transportFilter==='both')||a.transport===transportFilter||a.transport==='both';
     var lassoOk=!useLasso||pointInPolygon({lat:a.lat,lng:a.lng},lassoPolygon);
-    return transportOk&&lassoOk;
+    return lassoOk;
   });
 
   layers.commute.clearLayers(); layers.markers.clearLayers();
