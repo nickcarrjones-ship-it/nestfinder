@@ -272,14 +272,15 @@ function buildRightmoveUrl(areaName) {
   var maxP=document.getElementById('prop-max').value;
   var minB=document.getElementById('prop-beds').value;
   var maxB=document.getElementById('prop-maxbeds').value;
-  var url='https://www.rightmove.co.uk/'+type+'/find.html'
-    +'?searchLocation='+encodeURIComponent(areaName+', London')
-    +'&useLocationIdentifier=false&locationIdentifier=&buyingOrRenting=buying'
+  var search=encodeURIComponent(areaName+', London');
+  return'https://www.rightmove.co.uk/'+type+'/find.html'
+    +'?searchLocation='+search
+    +'&locationIdentifier=&useLocationIdentifier=false'
+    +'&radius=0.25'
     +(minP?'&minPrice='+minP:'')
     +(maxP?'&maxPrice='+maxP:'')
     +(minB?'&minBedrooms='+minB:'')
     +(maxB?'&maxBedrooms='+maxB:'');
-  return url;
 }
 
 async function fetchOneJourney(fromLat,fromLng,toLat,toLng,date,time,timeIs){
