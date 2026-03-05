@@ -280,24 +280,27 @@ var layerOn={tube:true,elizabeth:true,overground:true,national_rail:true,station
 
 function toggleLayer(n){layerOn[n]=!layerOn[n];document.getElementById('toggle-'+n).className='toggle '+(layerOn[n]?'on':'off');if(layerOn[n])layers[n].addTo(map);else map.removeLayer(layers[n]);}
 
-TUBE_LINES.forEach(function(line){
-  var pts=line.route.map(function(s){return STATIONS[s]?[STATIONS[s].lat,STATIONS[s].lng]:null;}).filter(Boolean);
-  if(pts.length<2)return;
-  L.polyline(pts,{color:line.color,weight:line.w,opacity:0.85}).addTo(layers[line.group]);
-});
-NR_LINES.forEach(function(line){
-  var pts=line.route.map(function(s){return NR_STATIONS[s]?[NR_STATIONS[s].lat,NR_STATIONS[s].lng]:null;}).filter(Boolean);
-  if(pts.length<2)return;
-  L.polyline(pts,{color:line.color,weight:line.w,opacity:0.7,dashArray:'6,4'}).addTo(layers.national_rail);
-});
-Object.keys(STATIONS).forEach(function(name){
-  var s=STATIONS[name];
-  L.circleMarker([s.lat,s.lng],{renderer:renderer,radius:3,fillColor:'#fff',color:'#444',weight:1.5,fillOpacity:1}).bindPopup('<b>'+name+'</b>').addTo(layers.stations);
-});
-Object.keys(NR_STATIONS).forEach(function(name){
-  var s=NR_STATIONS[name];
-  L.circleMarker([s.lat,s.lng],{renderer:renderer,radius:2.5,fillColor:'#fff',color:'#666',weight:1.5,fillOpacity:1}).bindPopup('<b>'+name+'</b>').addTo(layers.stations);
-});
+// Defer all map rendering so the page and button are usable immediately
+setTimeout(function(){
+  TUBE_LINES.forEach(function(line){
+    var pts=line.route.map(function(s){return STATIONS[s]?[STATIONS[s].lat,STATIONS[s].lng]:null;}).filter(Boolean);
+    if(pts.length<2)return;
+    L.polyline(pts,{color:line.color,weight:line.w,opacity:0.85}).addTo(layers[line.group]);
+  });
+  NR_LINES.forEach(function(line){
+    var pts=line.route.map(function(s){return NR_STATIONS[s]?[NR_STATIONS[s].lat,NR_STATIONS[s].lng]:null;}).filter(Boolean);
+    if(pts.length<2)return;
+    L.polyline(pts,{color:line.color,weight:line.w,opacity:0.7,dashArray:'6,4'}).addTo(layers.national_rail);
+  });
+  Object.keys(STATIONS).forEach(function(name){
+    var s=STATIONS[name];
+    L.circleMarker([s.lat,s.lng],{renderer:renderer,radius:3,fillColor:'#fff',color:'#444',weight:1.5,fillOpacity:1}).bindPopup('<b>'+name+'</b>').addTo(layers.stations);
+  });
+  Object.keys(NR_STATIONS).forEach(function(name){
+    var s=NR_STATIONS[name];
+    L.circleMarker([s.lat,s.lng],{renderer:renderer,radius:2.5,fillColor:'#fff',color:'#666',weight:1.5,fillOpacity:1}).bindPopup('<b>'+name+'</b>').addTo(layers.stations);
+  });
+}, 0);
 
 var sidebarOpen=true;
 function toggleSidebar(){
