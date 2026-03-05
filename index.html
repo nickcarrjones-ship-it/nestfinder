@@ -169,15 +169,13 @@ async function computeZones(){
     if(!a.inP1&&!a.inP2)return;
     var color=a.both?'#84cc16':a.inP1?'#f43f8e':'#38bdf8';
     var t1s=a.t1!==null?a.t1+' min':'n/a',t2s=a.t2!==null?a.t2+' min':'n/a';
-    L.circle([a.lat,a.lng],{radius:1100,fillColor:color,color:a.both?'#84cc16':'transparent',weight:a.both?1.5:0,fillOpacity:a.both?0.45:0.28}).bindPopup('<div class="popup-title" style="color:'+(a.both?'#16a34a':color)+'">'+(a.both?'★ ':'')+a.name+'</div><div class="popup-badge">'+(a.both?'Ideal for both':'Reachable by one')+'</div><div class="popup-row">You (CW): <b>'+t1s+'</b></div><div class="popup-row">Partner (Holborn): <b>'+t2s+'</b></div><div class="popup-source">Live TfL data</div>').addTo(layers.commute);
-  });
+    L.circle([a.lat,a.lng],{renderer:renderer,radius:1100,fillColor:color,color:a.both?'#84cc16':'transparent',weight:a.both?1.5:0,fillOpacity:a.both?0.45:0.28})});
   function mkIcon(label,col){return L.divIcon({html:'<div style="background:'+col+';width:38px;height:38px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,0.35)">'+label+'</div>',className:'',iconSize:[38,38],iconAnchor:[19,19]});}
   L.marker([51.5051,-0.0200],{icon:mkIcon('CW','#f43f8e')}).bindPopup('<b>Canary Wharf</b><br>Your workplace').addTo(layers.markers);
   L.marker([51.5174,-0.1200],{icon:mkIcon('HOL','#38bdf8')}).bindPopup('<b>Holborn</b><br>Partner workplace').addTo(layers.markers);
   var idealCount=areaResults.filter(function(a){return a.both;}).length;
   var reachCount=areaResults.filter(function(a){return a.inP1||a.inP2;}).length;
-  document.getElementById('stat-ideal').textContent=idealCount;
-  document.getElementById('stat-reachable').textContent=reachCount;
+  document.getElementById('stat-ideal').textContent=idbody  document.getElementById('stat-reachable').textContent=reachCount;
   document.getElementById('results-section').style.display='block';
   document.getElementById('header-status').textContent=idealCount+' ideal areas found';
   document.getElementById('clear-btn').style.display='block';
