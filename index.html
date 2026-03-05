@@ -802,27 +802,14 @@ function countAreasInLasso(){
 async function fetchTflTime(fromLat,fromLng,toLat,toLng){
   var url='https://api.tfl.gov.uk/Journey/JourneyResults/'+fromLat+','+fromLng+'/to/'+toLat+','+toLng+'?app_key='+TFL_KEY+'&mode=tube,dlr,overground,elizabeth-line,national-rail&journeyPreference=LeastTime';
   try{
-    var res=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));
-    if(!res.ok){
-      showApiError('HTTP '+res.status+' from proxy');
-      return null;
-    }
+    var res=await fetch(url);
+    if(!res.ok)return null;
     var data=await res.json();
     if(data.journeys&&data.journeys.length>0)return data.journeys[0].duration;
-    if(data.httpStatusCode){
-      showApiError('TfL error: '+data.httpStatusCode+' '+JSON.stringify(data.message||''));
-    }
     return null;
-  }catch(e){
-    showApiError('Fetch error: '+e.message);
-    return null;
-  }
+  }catch(e){return null;}
 }
-
-function showApiError(msg){
-  var el=document.getElementById('api-error');
-  if(el) el.textContent='⚠️ '+msg;
-}
+function showApiError(msg){}
 async function fetchBatch(tasks,batchSize,onProgress){
   var results=new Array(tasks.length);
   for(var i=0;i<tasks.length;i+=batchSize){
