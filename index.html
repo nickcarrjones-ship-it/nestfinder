@@ -40,11 +40,6 @@ select:focus { border-color: #6366f1; }
 .transport-filter button.active { background: #1a1f36; color: #a3e635; border-color: #1a1f36; font-weight: 600; }
 .btn-primary { width: 100%; padding: 16px 0; background: #1a1f36; color: #a3e635; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px; font-family: inherit; margin-top: 12px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .btn-secondary { width: 100%; padding: 13px 0; background: transparent; color: #6b7280; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 15px; cursor: pointer; font-family: inherit; touch-action: manipulation; }
-.layer-swatch.dashed { background: transparent; border-top: 3px dashed #97BB2D; }
-.toggle { width: 48px; height: 28px; border-radius: 14px; position: relative; transition: background 0.2s; flex-shrink: 0; border: none; cursor: pointer; background: #d1d5db; padding: 0; touch-action: manipulation; }
-.toggle::after { content:''; position:absolute; width:20px; height:20px; background:#fff; border-radius:50%; top:4px; left:4px; transition:left 0.2s; box-shadow:0 1px 4px rgba(0,0,0,0.25); }
-.toggle.on { background: #a3e635; }
-.toggle.on::after { left: 24px; }
 .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .stat-box { border-radius: 8px; padding: 12px; text-align: center; }
 .stat-box.green { background: #f0fdf4; border: 1px solid #bbf7d0; }
@@ -102,8 +97,6 @@ select:focus { border-color: #6366f1; }
       <button class="btn-primary" id="compute-btn" onclick="computeZones()">&#9654; Find Overlap Zone</button>
       <button class="btn-secondary" id="clear-btn" onclick="clearResults()" style="display:none">&#10005; Clear Results</button>
     </div>
-
-
     <div class="section" id="results-section" style="display:none">
       <div class="section-title">Results</div>
       <div class="results-grid">
@@ -219,10 +212,6 @@ var AREAS=[
   {name:"Dartford",lat:51.4462,lng:0.2197,transport:"rail"}
 ];
 
-
-
-
-
 var JOURNEY_TIMES={
   "Shoreditch":{cw:18,hol:12},"Hackney":{cw:22,hol:20},"Islington":{cw:25,hol:15},
   "Stoke Newington":{cw:35,hol:25},"Dalston":{cw:28,hol:22},"Peckham":{cw:30,hol:28},
@@ -263,8 +252,6 @@ L.control.zoom({position:'bottomright'}).addTo(map);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(map);
 
 var layers={commute:L.layerGroup().addTo(map),markers:L.layerGroup().addTo(map)};
-
-
 
 var sidebarOpen=true;
 function toggleSidebar(){
