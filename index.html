@@ -105,7 +105,7 @@ select:focus { border-color: #6366f1; }
         <button class="seg-btn" id="seg-tube" onclick="setTransportFilter('tube')">🚇 Tube</button>
         <button class="seg-btn" id="seg-rail" onclick="setTransportFilter('rail')">🚆 Rail</button>
       </div>
-      <button class="btn-primary" id="compute-btn" onclick="computeZones()">&#9654; Find Overlap Zone</button>
+      <button class="btn-primary" id="compute-btn" onclick="document.getElementById('compute-btn').textContent='Drawing…';setTimeout(function(){computeZones();document.getElementById('compute-btn').textContent='⟳ Recalculate';},10)">&#9654; Find Overlap Zone</button>
       <button class="btn-secondary" id="clear-btn" onclick="clearResults()" style="display:none">&#10005; Clear Results</button>
     </div>
 
@@ -480,24 +480,23 @@ function computeZones(){
     var t2s=a.t2!==null?a.t2+' min':'n/a';
     var transportLabel=a.transport==='rail'?'🚆 Rail served':a.transport==='tube'?'🚇 Tube served':'🚇🚆 Tube & Rail';
 
+    var rmUrl=buildRightmoveUrl(a);
+    var popupHtml='<div class="popup-title" style="color:'+(a.both?'#16a34a':color)+'">'
+      +(a.both?'★ ':'')+a.name+'</div>'
+      +'<div class="popup-badge">'+(a.both?'Ideal for both':'Reachable by one')+'</div>'
+      +'<div style="font-size:11px;color:#6b7280;margin-bottom:8px">'+transportLabel+'</div>'
+      +'<div class="popup-row"><span>🔵 Nick (CW)</span><b>'+t1s+'</b></div>'
+      +'<div class="popup-row"><span>🩷 Harriet (Holborn)</span><b>'+t2s+'</b></div>'
+      +'<div class="popup-divider"></div>'
+      +'<a href="'+rmUrl+'" target="_blank" class="popup-rm-btn">🏠 View on Rightmove</a>'
+      +'<div class="popup-source">Typical weekday peak journey times</div>';
     L.circle([a.lat,a.lng],{
       renderer:renderer,radius:1100,
       fillColor:color,
       color:a.both?'#65a30d':'transparent',
       weight:a.both?1.5:0,
       fillOpacity:a.both?0.45:0.32
-    }).bindPopup(function(){
-      var rmUrl=buildRightmoveUrl(a);
-      return '<div class="popup-title" style="color:'+(a.both?'#16a34a':color)+'">'
-        +(a.both?'★ ':'')+a.name+'</div>'
-        +'<div class="popup-badge">'+(a.both?'Ideal for both':'Reachable by one')+'</div>'
-        +'<div style="font-size:11px;color:#6b7280;margin-bottom:8px">'+transportLabel+'</div>'
-        +'<div class="popup-row"><span>🔵 Nick (CW)</span><b>'+t1s+'</b></div>'
-        +'<div class="popup-row"><span>🩷 Harriet (Holborn)</span><b>'+t2s+'</b></div>'
-        +'<div class="popup-divider"></div>'
-        +'<a href="'+rmUrl+'" target="_blank" class="popup-rm-btn">🏠 View on Rightmove</a>'
-        +'<div class="popup-source">Typical weekday peak journey times</div>';
-    }).addTo(layers.commute);
+    }).bindPopup(popupHtml).addTo(layers.commute);
   });
 
   function mkIcon(label,col){
@@ -517,7 +516,6 @@ function computeZones(){
   document.getElementById('header-status').textContent=idealCount+' ideal areas found';
   document.getElementById('clear-btn').style.display='block';
   document.getElementById('data-note').textContent='Based on typical weekday peak journey times. Tap any bubble for details.';
-  map.setView([51.505,-0.09],11);
 }
 
 function clearResults(){
