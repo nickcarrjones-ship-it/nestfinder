@@ -730,6 +730,7 @@ function startLasso(){
   document.getElementById('lasso-btn').textContent='🤠 Drawing... (double-click to finish)';
   document.getElementById('lasso-hint').className='lasso-hint show';
   map.dragging.disable();
+  map.doubleClickZoom.disable();
   map.getContainer().style.cursor='crosshair';
   map.on('click',lassoClick);
   map.on('dblclick',lassoFinish);
@@ -746,12 +747,14 @@ function lassoClick(e){
 }
 function lassoFinish(e){
   if(!lassoActive||lassoPoints.length<3)return;
+  L.DomEvent.stopPropagation(e);
   map.off('click',lassoClick);
   map.off('dblclick',lassoFinish);
   lassoActive=false;
   lassoLayer.clearLayers();
   lassoPolygon=L.polygon(lassoPoints,{color:'#f59e0b',weight:2,fillColor:'#fef9c3',fillOpacity:0.15,dashArray:'6 4'}).addTo(lassoLayer);
   map.dragging.enable();
+  map.doubleClickZoom.enable();
   map.getContainer().style.cursor='';
   var count=countAreasInLasso();
   document.getElementById('lasso-btn').className='lasso-btn has-lasso';
@@ -766,6 +769,7 @@ function stopLasso(){
   if(lassoPolygon){lassoPolygon=null;}
   lassoPoints=[];
   map.dragging.enable();
+  map.doubleClickZoom.enable();
   map.getContainer().style.cursor='';
   document.getElementById('lasso-btn').className='lasso-btn';
   document.getElementById('lasso-btn').textContent='🤠 Lasso specific areas (optional)';
@@ -1065,4 +1069,4 @@ async function fetchLifestyle(areaName){
 }
 </script>
 </body>
-</html
+</html>
