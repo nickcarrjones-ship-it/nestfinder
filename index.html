@@ -95,16 +95,6 @@ select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; font-size
 .rank-badge { display: inline-block; font-size: 9px; background: #1a1f36; color: #a3e635; padding: 2px 5px; border-radius: 8px; font-weight: 700; margin-left: 5px; vertical-align: middle; }
 /* Third Space markers */
 .ts-marker { background: #1a1f36; border: 2px solid #a3e635; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; width: 28px; height: 28px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-.lasso-btn { width: 100%; padding: 11px 0; background: #fff; color: #6b7280; border: 1.5px dashed #d1d5db; border-radius: 10px; font-size: 13px; cursor: pointer; font-family: inherit; margin-top: 6px; touch-action: manipulation; transition: all 0.2s; }
-.lasso-btn.active { background: #fef9c3; color: #854d0e; border-color: #fbbf24; border-style: solid; font-weight: 600; }
-.lasso-btn.has-lasso { background: #f0fdf4; color: #16a34a; border-color: #86efac; border-style: solid; font-weight: 600; }
-.lasso-hint { font-size: 11px; color: #f59e0b; text-align: center; margin-top: 6px; display: none; font-weight: 500; }
-.lasso-hint.show { display: block; }
-.progress-wrap { display: none; margin: 8px 0 4px; }
-.progress-wrap.show { display: block; }
-.progress-bar-bg { height: 5px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
-.progress-bar-fill { height: 100%; background: #a3e635; border-radius: 3px; transition: width 0.3s; width: 0%; }
-.progress-label { font-size: 11px; color: #6b7280; margin-top: 5px; text-align: center; }
 /* Popup */
 .leaflet-popup-content-wrapper { border-radius: 12px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important; }
 .leaflet-popup-content { margin: 12px 14px !important; min-width: 180px; }
@@ -157,15 +147,10 @@ select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; font-size
           <button id="tf-tube" onclick="setTransport('tube')">&#128647; Tube</button>
           <button id="tf-rail" onclick="setTransport('rail')">&#128646; Rail</button>
         </div>
-        <button class="lasso-btn" id="lasso-btn" onclick="toggleLasso()">🤠 Lasso specific areas (optional)</button>
-        <div class="lasso-hint" id="lasso-hint">Draw on the map — click to add points, double-click to close</div>
-        <div class="progress-wrap" id="progress-wrap">
-          <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
           <div class="progress-label" id="progress-label"></div>
         </div>
         <button class="btn-primary" id="compute-btn" onclick="computeZones()">&#9654; Find Overlap Zone</button>
         <button class="btn-secondary" id="clear-btn" onclick="clearResults()" style="display:none">&#10005; Clear Results</button>
-        <div id="api-error" style="font-size:11px;color:#ef4444;margin-top:8px;word-break:break-all;"></div>
       </div>
       <div class="section" id="results-section" style="display:none">
         <div class="section-title">Results</div>
@@ -621,17 +606,11 @@ var AGENTS={
 };
 
 // ── Map init ──
-var TFL_KEY='079539e46d394c88a128cf05c97957bf';
 var map=L.map('map',{center:[51.505,-0.06],zoom:11,zoomControl:false});
 L.control.zoom({position:'bottomright'}).addTo(map);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
 var renderer=L.svg({padding:0.5});
 var layers={commute:L.layerGroup().addTo(map),markers:L.layerGroup().addTo(map),thirdspace:L.layerGroup().addTo(map)};
-var lassoActive=false;
-var lassoPoints=[];
-var lassoPolygon=null;
-var lassoLayer=L.layerGroup().addTo(map);
-var lassoTempLine=null;
 
 // ── Plot Third Space markers ──
 THIRD_SPACE.forEach(function(ts){
@@ -682,123 +661,6 @@ function setTransport(t){
   });
 }
 
-// ── Lasso tool ──
-function toggleLasso(){
-  if(lassoActive){
-    stopLasso();
-  } else if(lassoPolygon){
-    // Already have a polygon — clicking again means redraw
-    lassoLayer.clearLayers();
-    lassoPolygon=null;
-    startLasso();
-  } else {
-    startLasso();
-  }
-}
-function startLasso(){
-  lassoActive=true;
-  lassoPoints=[];
-  lassoLayer.clearLayers();
-  document.getElementById('lasso-btn').className='lasso-btn active';
-  document.getElementById('lasso-btn').textContent='🤠 Drawing... (double-click to finish)';
-  document.getElementById('lasso-hint').className='lasso-hint show';
-  map.dragging.disable();
-  map.doubleClickZoom.disable();
-  map.getContainer().style.cursor='crosshair';
-  map.on('click',lassoClick);
-  map.on('dblclick',lassoFinish);
-}
-function lassoClick(e){
-  if(!lassoActive)return;
-  lassoPoints.push(e.latlng);
-  if(lassoTempLine){lassoLayer.removeLayer(lassoTempLine);}
-  if(lassoPoints.length>1){
-    lassoTempLine=L.polyline(lassoPoints,{color:'#f59e0b',weight:2,dashArray:'6 4',opacity:0.9}).addTo(lassoLayer);
-  } else {
-    L.circleMarker(e.latlng,{radius:4,fillColor:'#f59e0b',color:'#f59e0b',fillOpacity:1,weight:1}).addTo(lassoLayer);
-  }
-}
-function lassoFinish(e){
-  if(!lassoActive||lassoPoints.length<3)return;
-  L.DomEvent.stopPropagation(e);
-  map.off('click',lassoClick);
-  map.off('dblclick',lassoFinish);
-  lassoActive=false;
-  lassoLayer.clearLayers();
-  lassoPolygon=L.polygon(lassoPoints,{color:'#f59e0b',weight:2,fillColor:'#fef9c3',fillOpacity:0.15,dashArray:'6 4'}).addTo(lassoLayer);
-  map.dragging.enable();
-  map.doubleClickZoom.enable();
-  map.getContainer().style.cursor='';
-  var count=countAreasInLasso();
-  document.getElementById('lasso-btn').className='lasso-btn has-lasso';
-  document.getElementById('lasso-btn').textContent='🤠 '+count+' areas lassoed — click to redraw';
-  document.getElementById('lasso-hint').className='lasso-hint';
-}
-function stopLasso(){
-  // Only clear polygon if we're mid-draw (not if already finished)
-  lassoActive=false;
-  map.off('click',lassoClick);
-  map.off('dblclick',lassoFinish);
-  if(!lassoPolygon){
-    // Only clear layer if no finished polygon exists
-    lassoLayer.clearLayers();
-  }
-  lassoPoints=[];
-  map.dragging.enable();
-  map.doubleClickZoom.enable();
-  map.getContainer().style.cursor='';
-  document.getElementById('lasso-btn').className='lasso-btn';
-  document.getElementById('lasso-btn').textContent='🤠 Lasso specific areas (optional)';
-  document.getElementById('lasso-hint').className='lasso-hint';
-}
-function pointInPolygon(point,polygon){
-  var x=point.lat,y=point.lng;
-  var pts=polygon.getLatLngs()[0];
-  var inside=false;
-  for(var i=0,j=pts.length-1;i<pts.length;j=i++){
-    var xi=pts[i].lat,yi=pts[i].lng,xj=pts[j].lat,yj=pts[j].lng;
-    var intersect=((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi);
-    if(intersect)inside=!inside;
-  }
-  return inside;
-}
-function countAreasInLasso(){
-  if(!lassoPolygon)return 0;
-  return AREAS.filter(function(a){return pointInPolygon({lat:a.lat,lng:a.lng},lassoPolygon);}).length;
-}
-// TfL API
-async function fetchTflTime(fromLat,fromLng,toLat,toLng){
-  var url='https://api.tfl.gov.uk/Journey/JourneyResults/'+fromLat+','+fromLng+'/to/'+toLat+','+toLng+'?app_key='+TFL_KEY+'&mode=tube,dlr,overground,elizabeth-line,national-rail&journeyPreference=LeastTime';
-  try{
-    var controller=new AbortController();
-    var timeout=setTimeout(function(){controller.abort();},8000);
-    var res=await fetch(url,{signal:controller.signal});
-    clearTimeout(timeout);
-    if(!res.ok)return null;
-    var data=await res.json();
-    if(data.journeys&&data.journeys.length>0)return data.journeys[0].duration;
-    return null;
-  }catch(e){return null;}
-}
-function showApiError(msg){}
-async function fetchBatch(tasks,batchSize,onProgress){
-  var results=new Array(tasks.length);
-  for(var i=0;i<tasks.length;i+=batchSize){
-    var batch=tasks.slice(i,i+batchSize);
-    var br=await Promise.all(batch.map(function(t){return t();}));
-    br.forEach(function(r,j){results[i+j]=r;});
-    onProgress(Math.min(i+batchSize,tasks.length),tasks.length);
-    if(i+batchSize<tasks.length)await new Promise(function(r){setTimeout(r,600);});
-  }
-  return results;
-}
-
-// ── Zoom-scaling circles ──
-var zoomCircles=[];
-function getRadiusForZoom(zoom){
-  // At zoom 11 → 1100m, scales proportionally
-  return 1100*Math.pow(2,11-zoom);
-}
 function updateCircleRadii(){
   var r=getRadiusForZoom(map.getZoom());
   zoomCircles.forEach(function(c){c.setRadius(r);});
@@ -806,25 +668,18 @@ function updateCircleRadii(){
 map.on('zoomend',updateCircleRadii);
 
 // ── Compute zones ──
-async function computeZones(){
+function computeZones(){
   var p1Max=parseInt(document.getElementById('p1-max').value);
   var p2Max=parseInt(document.getElementById('p2-max').value);
-  var useLasso=lassoPolygon!==null;
-  var activeAreas=AREAS.filter(function(a){
-    var lassoOk=!useLasso||pointInPolygon({lat:a.lat,lng:a.lng},lassoPolygon);
-    return lassoOk;
-  });
 
   layers.commute.clearLayers(); layers.markers.clearLayers();
   zoomCircles=[];
   document.getElementById('results-section').style.display='none';
-  document.getElementById('compute-btn').disabled=true;
-  document.getElementById('api-error').textContent='';
 
   var journeyTimes={};
 
-  // Use pre-computed journey times — instant, no API calls needed
-  activeAreas.forEach(function(area){
+  // Use pre-computed journey times — instant
+  AREAS.forEach(function(area){
     var jt=JOURNEY_TIMES[area.name];
     if(jt){
       journeyTimes[area.name]={cw:jt.cw,hol:jt.hol};
@@ -834,20 +689,16 @@ async function computeZones(){
   var ideal=0,reach=0;
   var r=getRadiusForZoom(map.getZoom());
 
-  activeAreas.forEach(function(area){
+  AREAS.forEach(function(area){
     var jt=journeyTimes[area.name]; if(!jt)return;
 
     var t1=jt.cw, t2=jt.hol;
-    if(t1===null&&t2===null)return;
-    var inP1=t1!==null&&t1<=p1Max;
-    var inP2=t2!==null&&t2<=p2Max;
+    var inP1=t1<=p1Max;
+    var inP2=t2<=p2Max;
     if(!inP1&&!inP2)return;
     var both=inP1&&inP2;
     if(both){ideal++;} reach++;
     var color=both?'#84cc16':inP1?'#38bdf8':'#f43f8e';
-    var t1s=t1!==null?t1+' min':'n/a';
-    var t2s=t2!==null?t2+' min':'n/a';
-    var srcNote='';
     var circle=L.circle([area.lat,area.lng],{
       renderer:renderer,radius:r,
       fillColor:color,color:both?'#65a30d':'transparent',
@@ -855,40 +706,27 @@ async function computeZones(){
     }).bindPopup(
       '<b style="color:'+(both?'#16a34a':color)+'">'+(both?'&#9733; ':'')+area.name+'</b>'+
       '<div style="font-size:11px;color:#6b7280;margin:2px 0 6px">'+(both?'Ideal for both':'Reachable by one')+'</div>'+
-      '<div style="font-size:12px;margin-bottom:2px">&#128309; Nick → CW: <b>'+t1s+'</b></div>'+
-      '<div style="font-size:12px">&#129145; Harriet → HOL: <b>'+t2s+'</b></div>'+srcNote
+      '<div style="font-size:12px;margin-bottom:2px">&#128309; Nick → Canary Wharf: <b>'+t1+' min</b></div>'+
+      '<div style="font-size:12px">&#129145; Harriet → Holborn: <b>'+t2+' min</b></div>'
     ).addTo(layers.commute);
-    circle.on('click',function(){openAreaInfo(area,t1!==null?t1:0,t2!==null?t2:0,both);});
+    circle.on('click',function(){openAreaInfo(area,t1,t2,both);});
     zoomCircles.push(circle);
   });
 
   function mkIcon(lbl,col){return L.divIcon({html:'<div style="background:'+col+';width:32px;height:32px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)">'+lbl+'</div>',className:'',iconSize:[32,32],iconAnchor:[16,16]});}
   L.marker([CW.lat,CW.lng],{icon:mkIcon('CW','#38bdf8')}).bindPopup('<b>Canary Wharf</b><br>Nick').addTo(layers.markers);
   L.marker([HOL.lat,HOL.lng],{icon:mkIcon('HOL','#f43f8e')}).bindPopup('<b>Holborn</b><br>Harriet').addTo(layers.markers);
-  document.getElementById('stat-ideal').textContent=useLasso?ideal:'-';
-  document.getElementById('stat-reachable').textContent=useLasso?reach:activeAreas.length;
+  document.getElementById('stat-ideal').textContent=ideal;
+  document.getElementById('stat-reachable').textContent=reach;
   document.getElementById('results-section').style.display='block';
-  document.getElementById('header-status').textContent=useLasso?(ideal+' ideal areas found (live TfL)'):(activeAreas.length+' stations shown');
+  document.getElementById('header-status').textContent=ideal+' ideal areas found';
   document.getElementById('clear-btn').style.display='block';
-  document.getElementById('data-note').textContent=useLasso?'Showing '+activeAreas.length+' lassoed stations. Tap a bubble to explore.':'Showing all '+activeAreas.length+' stations. 🤠 Lasso an area then click Find Overlap Zone.';
-  document.getElementById('compute-btn').disabled=false;
+  document.getElementById('data-note').textContent=ideal+' areas work for both within your limits. Tap any bubble to explore.';
 }
+
 function clearResults(){
   layers.commute.clearLayers(); layers.markers.clearLayers();
   zoomCircles=[];
-  // Full lasso reset
-  lassoActive=false;
-  map.off('click',lassoClick);
-  map.off('dblclick',lassoFinish);
-  lassoLayer.clearLayers();
-  lassoPolygon=null;
-  lassoPoints=[];
-  map.dragging.enable();
-  map.doubleClickZoom.enable();
-  map.getContainer().style.cursor='';
-  document.getElementById('lasso-btn').className='lasso-btn';
-  document.getElementById('lasso-btn').textContent='🤠 Lasso specific areas (optional)';
-  document.getElementById('lasso-hint').className='lasso-hint';
   document.getElementById('results-section').style.display='none';
   document.getElementById('clear-btn').style.display='none';
   document.getElementById('header-status').textContent='Find your overlap zone';
