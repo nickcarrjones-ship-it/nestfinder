@@ -71,6 +71,22 @@ select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; font-size
 .lifestyle-loading { font-size: 12px; color: #9ca3af; padding: 12px 0; text-align: center; }
 .ts-nearby { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 10px; margin-top: 4px; font-size: 12px; color: #16a34a; font-weight: 600; }
 .ts-far { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-top: 4px; font-size: 12px; color: #6b7280; }
+.score-display { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.score-circle { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.score-circle.datenight { background: linear-gradient(135deg, #f43f8e, #a855f7); }
+.score-circle.crime-low { background: #16a34a; }
+.score-circle.crime-mid { background: #d97706; }
+.score-circle.crime-high { background: #dc2626; }
+.score-detail { font-size: 12px; color: #6b7280; line-height: 1.5; }
+/* Third Space toggle */
+.ts-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding: 10px 12px; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; }
+.ts-toggle-label { font-size: 12px; font-weight: 600; color: #15803d; display: flex; align-items: center; gap: 6px; }
+.toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #d1d5db; border-radius: 22px; transition: 0.2s; }
+.toggle-slider:before { position: absolute; content: ''; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+input:checked + .toggle-slider { background: #16a34a; }
+input:checked + .toggle-slider:before { transform: translateX(18px); }
 /* Scoring */
 .score-block { margin-top: 4px; }
 .score-row { display: flex; gap: 3px; margin-bottom: 8px; flex-wrap: nowrap; }
@@ -164,6 +180,13 @@ select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; font-size
             </select>
           </div>
         </div>
+        <div class="ts-toggle-row">
+          <div class="ts-toggle-label">&#127947; Within 1 mile of Third Space</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ts-filter" onchange="if(document.getElementById('results-section').style.display!=='none')computeZones();">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
         <button class="btn-primary" id="compute-btn" onclick="computeZones()">&#9654; Find Overlap Zone</button>
         <button class="btn-secondary" id="clear-btn" onclick="clearResults()" style="display:none">&#10005; Clear Results</button>
       </div>
@@ -200,7 +223,16 @@ select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; font-size
         <div class="section">
           <div class="section-title">&#127759; Lifestyle &amp; Amenities</div>
           <div id="ai-lifestyle-content"><div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading area data...</div></div>
-          <div id="ai-thirdspace" style="margin-top:8px"></div>
+          <div id="ai-parks" style="margin-top:8px"></div>
+          <div id="ai-thirdspace" style="margin-top:6px"></div>
+        </div>
+        <div class="section">
+          <div class="section-title">&#127829; Date Night Score</div>
+          <div id="ai-datenight-content"><div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading...</div></div>
+        </div>
+        <div class="section">
+          <div class="section-title">&#128272; Crime Rate</div>
+          <div id="ai-crime-content"><div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading...</div></div>
         </div>
         <div class="section">
           <div class="section-title" style="color:#38bdf8">&#128309; Nick's Rating</div>
@@ -697,6 +729,7 @@ function computeZones(){
     }
   });
 
+  var tsFilterOn=document.getElementById('ts-filter').checked;
   var ideal=0,reach=0;
   var r=getRadiusForZoom(map.getZoom());
 
@@ -707,6 +740,12 @@ function computeZones(){
     var inP1=t1<=p1Max;
     var inP2=t2<=p2Max;
     if(!inP1&&!inP2)return;
+
+    // Third Space filter
+    if(tsFilterOn){
+      var ts=nearestTS(area.lat,area.lng);
+      if(ts.miles>1)return;
+    }
     var both=inP1&&inP2;
     if(both){ideal++;} reach++;
     var color=both?'#84cc16':inP1?'#38bdf8':'#f43f8e';
@@ -756,11 +795,22 @@ function openAreaInfo(area,t1,t2,both){
   var w2=parseInt(document.getElementById('p2-walk').value)||0;
   document.getElementById('ai-area-commute1').textContent='🔵 Nick → Canary Wharf: '+t1+' min ('+(t1-w1)+' train + '+w1+' walk)';
   document.getElementById('ai-area-commute2').textContent='🩷 Harriet → Holborn: '+t2+' min';
-  // Agents
+  // Agents — fuzzy match station name against neighbourhood keys
   var agents=AGENTS[area.name]||[];
-  document.getElementById('ai-agents').innerHTML=agents.map(function(a){
-    return '<a class="agent-link" href="'+a.u+'" target="_blank">'+a.n+'</a>';
-  }).join('');
+  if(!agents.length){
+    var lowerArea=area.name.toLowerCase();
+    Object.keys(AGENTS).forEach(function(key){
+      if(!agents.length){
+        var lowerKey=key.toLowerCase();
+        if(lowerArea.indexOf(lowerKey)!==-1||lowerKey.indexOf(lowerArea)!==-1){
+          agents=AGENTS[key];
+        }
+      }
+    });
+  }
+  document.getElementById('ai-agents').innerHTML=agents.length
+    ? agents.map(function(a){return '<a class="agent-link" href="'+a.u+'" target="_blank">'+a.n+'</a>';}).join('')
+    : '<div class="lifestyle-loading">No agents listed for this area</div>';
   // Third Space
   var ts=nearestTS(area.lat,area.lng);
   var tsMiles=ts.miles.toFixed(1);
@@ -778,7 +828,12 @@ function openAreaInfo(area,t1,t2,both){
   document.getElementById('save-confirm').style.display='none';
   // AI lifestyle data
   document.getElementById('ai-lifestyle-content').innerHTML='<div class="lifestyle-loading">&#9679;&#9679;&#9679; Asking Claude about '+area.name+'...</div>';
+  document.getElementById('ai-parks').innerHTML='';
+  document.getElementById('ai-datenight-content').innerHTML='<div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading...</div>';
+  document.getElementById('ai-crime-content').innerHTML='<div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading...</div>';
   fetchLifestyle(area.name);
+  fetchDateNight(area.name);
+  fetchCrime(area.name);
 }
 
 // ── Score buttons ──
@@ -868,8 +923,8 @@ async function fetchLifestyle(areaName){
       body:JSON.stringify({
         model:'claude-sonnet-4-6',
         max_tokens:300,
-        system:'You are a London local knowledge expert. Respond ONLY with valid JSON, no markdown, no explanation. Format: {"pubs_bars_restaurants":NUMBER,"coffee_shops":NUMBER,"vibe":"2-3 word description"}',
-        messages:[{role:'user',content:'Estimate the approximate number of pubs/bars/restaurants within 1 mile of '+areaName+' in London, the number of coffee shops within 1 mile, and describe the area vibe in 2-3 words. Return only JSON.'}]
+        system:'You are a London local knowledge expert. Respond ONLY with valid JSON, no markdown, no explanation. Format: {"pubs_bars_restaurants":NUMBER,"coffee_shops":NUMBER,"vibe":"2-3 word description","park_score":NUMBER_1_TO_10,"nearest_park":"park name"}',
+        messages:[{role:'user',content:'For '+areaName+' in London: estimate pubs/bars/restaurants within 1 mile, coffee shops within 1 mile, describe the vibe in 2-3 words, give a green space score out of 10 (1=no parks, 10=excellent parks very close), and name the single nearest park or green space. Return only JSON.'}]
       })
     });
     var data=await resp.json();
@@ -881,8 +936,79 @@ async function fetchLifestyle(areaName){
         '<div class="lifestyle-stat"><div class="lifestyle-num">'+parsed.coffee_shops+'</div><div class="lifestyle-lbl">Coffee Shops</div></div>'+
         '<div class="lifestyle-stat"><div class="lifestyle-num" style="font-size:12px;padding-top:4px">'+parsed.vibe+'</div><div class="lifestyle-lbl">Area Vibe</div></div>'+
       '</div>';
+    // Parks
+    var parkScore=parsed.park_score||0;
+    var parkColor=parkScore>=7?'#16a34a':parkScore>=4?'#d97706':'#dc2626';
+    var parkDots='';
+    for(var i=1;i<=10;i++){
+      parkDots+='<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:2px;background:'+(i<=parkScore?parkColor:'#e5e7eb')+'"></span>';
+    }
+    document.getElementById('ai-parks').innerHTML=
+      '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 10px;">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'+
+          '<span style="font-size:12px;font-weight:600;color:#15803d">&#127807; Green Space Score</span>'+
+          '<span style="font-size:13px;font-weight:700;color:'+parkColor+'">'+parkScore+'/10</span>'+
+        '</div>'+
+        '<div style="margin-bottom:5px;">'+parkDots+'</div>'+
+        '<div style="font-size:11px;color:#6b7280">Nearest: <b style="color:#1f2937">'+(parsed.nearest_park||'Unknown')+'</b></div>'+
+      '</div>';
   }catch(e){
     document.getElementById('ai-lifestyle-content').innerHTML='<div class="lifestyle-loading" style="color:#f43f8e">Could not load data</div>';
+  }
+}
+
+// ── Claude API: date night score ──
+async function fetchDateNight(areaName){
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-ash-pchd':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:200,
+        system:'You are a London local knowledge expert. Respond ONLY with valid JSON, no markdown, no explanation. Format: {"score":NUMBER_1_TO_10,"reason":"one short sentence explanation"}',
+        messages:[{role:'user',content:'Give '+areaName+' in London a date night score out of 10 based on its restaurants, bars, atmosphere, walkability in the evening, and overall romantic/fun potential as a place to spend a night out. Return only JSON.'}]
+      })
+    });
+    var data=await resp.json();
+    var text=data.content&&data.content[0]?data.content[0].text:'';
+    var parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    var score=parsed.score;
+    document.getElementById('ai-datenight-content').innerHTML=
+      '<div class="score-display">'+
+        '<div class="score-circle datenight">'+score+'</div>'+
+        '<div class="score-detail"><b style="color:#a855f7">'+score+'/10</b><br>'+parsed.reason+'</div>'+
+      '</div>';
+  }catch(e){
+    document.getElementById('ai-datenight-content').innerHTML='<div class="lifestyle-loading" style="color:#f43f8e">Could not load data</div>';
+  }
+}
+
+// ── Claude API: crime rate ──
+async function fetchCrime(areaName){
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-ash-pchd':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:200,
+        system:'You are a London local knowledge expert. Respond ONLY with valid JSON, no markdown, no explanation. Format: {"score":NUMBER_1_TO_10,"level":"Low"|"Medium"|"High","summary":"one short sentence"}. Score 1=very safe, 10=very high crime.',
+        messages:[{role:'user',content:'Rate the crime level in '+areaName+' in London on a scale of 1 to 10 where 1 is very safe and 10 is very high crime. Base this on general knowledge of Met Police crime statistics and local reputation. Return only JSON.'}]
+      })
+    });
+    var data=await resp.json();
+    var text=data.content&&data.content[0]?data.content[0].text:'';
+    var parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    var score=parsed.score;
+    var colorClass=score<=4?'crime-low':score<=7?'crime-mid':'crime-high';
+    document.getElementById('ai-crime-content').innerHTML=
+      '<div class="score-display">'+
+        '<div class="score-circle '+colorClass+'">'+score+'</div>'+
+        '<div class="score-detail"><b>'+score+'/10 — '+parsed.level+'</b><br>'+parsed.summary+'</div>'+
+      '</div>';
+  }catch(e){
+    document.getElementById('ai-crime-content').innerHTML='<div class="lifestyle-loading" style="color:#f43f8e">Could not load data</div>';
   }
 }
 </script>
