@@ -717,6 +717,11 @@ function setTransport(t){
 function toggleLasso(){
   if(lassoActive){
     stopLasso();
+  } else if(lassoPolygon){
+    // Already have a polygon — clicking again means redraw
+    lassoLayer.clearLayers();
+    lassoPolygon=null;
+    startLasso();
   } else {
     startLasso();
   }
@@ -725,7 +730,6 @@ function startLasso(){
   lassoActive=true;
   lassoPoints=[];
   lassoLayer.clearLayers();
-  if(lassoPolygon){lassoLayer.removeLayer(lassoPolygon);lassoPolygon=null;}
   document.getElementById('lasso-btn').className='lasso-btn active';
   document.getElementById('lasso-btn').textContent='🤠 Drawing... (double-click to finish)';
   document.getElementById('lasso-hint').className='lasso-hint show';
