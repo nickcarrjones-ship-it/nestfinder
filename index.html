@@ -241,6 +241,7 @@ var CW={lat:51.5051,lng:-0.0200};
 var HOL={lat:51.5174,lng:-0.1200};
 var currentArea=null;
 var nickScore=0, harrietScore=0;
+var zoomCircles=[];
 
 // ── Third Space locations (verified March 2026) ──
 var THIRD_SPACE=[
@@ -664,7 +665,6 @@ function toggleSidebar(){
   var btn=document.getElementById('toggle-btn');
   btn.innerHTML=sidebarOpen?'&#8249;':'&#8250;';
   btn.classList.toggle('collapsed',!sidebarOpen);
-  btn.style.left=sidebarOpen?'300px':'0';
 }
 
 function getRadiusForZoom(z){
@@ -843,7 +843,20 @@ function jumpToArea(name){
   var area=AREAS.find(function(a){return a.name===name;});
   if(!area)return;
   map.panTo([area.lat,area.lng]);
-  switchTab('search');
+  // Re-open the area info panel for this location using saved commute times
+  var saved=getSaved(name);
+  var jt=JOURNEY_TIMES[name];
+  if(jt){
+    var p1Walk=parseInt(document.getElementById('p1-walk').value)||0;
+    var p2Walk=parseInt(document.getElementById('p2-walk').value)||0;
+    var t1=jt.cw+p1Walk, t2=jt.hol+p2Walk;
+    var p1Max=parseInt(document.getElementById('p1-max').value);
+    var p2Max=parseInt(document.getElementById('p2-max').value);
+    var both=t1<=p1Max&&t2<=p2Max;
+    openAreaInfo(area,t1,t2,both);
+  } else {
+    switchTab('search');
+  }
 }
 
 // ── Claude API: lifestyle data ──
@@ -851,9 +864,9 @@ async function fetchLifestyle(areaName){
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-ash-pchd':'true'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model:'claude-sonnet-4-6',
         max_tokens:300,
         system:'You are a London local knowledge expert. Respond ONLY with valid JSON, no markdown, no explanation. Format: {"pubs_bars_restaurants":NUMBER,"coffee_shops":NUMBER,"vibe":"2-3 word description"}',
         messages:[{role:'user',content:'Estimate the approximate number of pubs/bars/restaurants within 1 mile of '+areaName+' in London, the number of coffee shops within 1 mile, and describe the area vibe in 2-3 words. Return only JSON.'}]
