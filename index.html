@@ -217,3 +217,17 @@ async function computeZones(){
   document.getElementById('stat-ideal').textContent=idealCount;
   document.getElementById('stat-reachable').textContent=reachCount;
   document.getElementById('results-section').style.display='block';
+  document.getElementById('header-status').textContent=idealCount+' ideal areas · real TfL times';
+  document.getElementById('clear-btn').style.display='block';
+  document.getElementById('pill-ideal').innerHTML='<span style="font-weight:700;color:#16a34a;font-size:18px">'+idealCount+'</span> <span style="color:#6b7280">ideal areas</span>';
+  document.getElementById('pill-p1').innerHTML='<span style="color:#6b7280">P1: </span><b>'+p1Selected+'</b>';
+  document.getElementById('pill-p2').innerHTML='<span style="color:#6b7280">P2: </span><b>'+p2Selected+'</b>';
+  currentResults=areaResults;
+  document.getElementById('progress-wrap').classList.remove('show');
+  document.getElementById('compute-btn').disabled=false;
+  map.fitBounds([[p1Sta.lat,p1Sta.lng],[p2Sta.lat,p2Sta.lng]],{padding:[80,80]});
+}
+function clearResults(){layers.commute.clearLayers();layers.markers.clearLayers();currentResults=null;document.getElementById('results-section').style.display='none';document.getElementById('clear-btn').style.display='none';document.getElementById('header-status').textContent='Enter your workplaces to begin';document.getElementById('float-pill').classList.remove('show');}
+</script>
+</body>
+</html>
