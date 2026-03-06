@@ -4,13 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Harriet & Nick's House Hunt</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: #f8fafc; }
@@ -204,15 +202,16 @@ function showLogin(){
   document.getElementById('login-modal').style.display='flex';
 }
 function setUser(name){
-  // currentUser is defined in the main script — set it if available
   if(typeof currentUser!=='undefined') currentUser=name;
-  else window._pendingUser=name; // store until main script picks it up
+  else window._pendingUser=name;
   document.getElementById('login-modal').style.display='none';
   var ind=document.getElementById('user-indicator');
   if(!ind) return;
   ind.className='user-indicator '+(name==='guest'?'nick':name);
   var label=name==='nick'?'Nick':name==='harriet'?'Harriet':'Guest';
   ind.innerHTML='<span class="sync-dot"></span>'+label;
+  // Load Firebase for real users, skip for guest
+  if(name!=='guest' && typeof initFirebase==='function') initFirebase();
 }
 </script>
 <div class="main">
@@ -445,7 +444,7 @@ function onUserSet(name){
   ind.innerHTML='<span class="sync-dot'+(db&&name!=='guest'?' connected':'')+'"></span>'+label;
 }
 
-// ── Firebase init ──
+// ── Firebase — lazy loaded after user selects Nick or Harriet ──
 var firebaseConfig={
   apiKey:"AIzaSyCrkvPf_bIBzkhQDsWDuoUnnw2FsVR0Ma0",
   authDomain:"nestfinder-54d8f.firebaseapp.com",
@@ -455,26 +454,46 @@ var firebaseConfig={
   messagingSenderId:"469569590221",
   appId:"1:469569590221:web:04599cb8ce1a5a10bfea84"
 };
-try{
-  firebase.initializeApp(firebaseConfig);
-  db=firebase.database();
-  // Listen for all ratings changes in real time
-  var fbRedrawDebounce=null;
-  db.ref('ratings').on('value',function(snap){
-    ratingsCache=snap.val()||{};
-    clearTimeout(fbRedrawDebounce);
-    fbRedrawDebounce=setTimeout(function(){
-      rebuildTop5();
-      renderResults();
-      if(document.getElementById('results-section').style.display!=='none') computeZones();
-    },300);
-  });
-  // Listen for veto changes in real time
-  db.ref('vetoes').on('value',function(snap){
-    vetoedAreas=snap.val()||{};
-    renderTable();
-  });
-}catch(e){ console.warn('Firebase not configured, using localStorage fallback'); }
+function initFirebase(){
+  if(db) return; // already initialised
+  function setupDB(){
+    try{
+      if(typeof firebase==='undefined') return;
+      firebase.initializeApp(firebaseConfig);
+      db=firebase.database();
+      // Update sync dot now Firebase is connected
+      var ind=document.getElementById('user-indicator');
+      if(ind) ind.querySelector('.sync-dot').className='sync-dot connected';
+      // Listen for ratings
+      var fbRedrawDebounce=null;
+      db.ref('ratings').on('value',function(snap){
+        ratingsCache=snap.val()||{};
+        clearTimeout(fbRedrawDebounce);
+        fbRedrawDebounce=setTimeout(function(){
+          rebuildTop5();
+          renderResults();
+          if(document.getElementById('results-section').style.display!=='none') computeZones();
+        },300);
+      });
+      // Listen for vetoes
+      db.ref('vetoes').on('value',function(snap){
+        vetoedAreas=snap.val()||{};
+        renderTable();
+      });
+      // Load localStorage vetoes as fallback already done, Firebase will now override
+    }catch(e){ console.warn('Firebase init failed, using localStorage fallback'); }
+  }
+  // Dynamically load Firebase SDK scripts then init
+  var s1=document.createElement('script');
+  s1.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
+  s1.onload=function(){
+    var s2=document.createElement('script');
+    s2.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
+    s2.onload=setupDB;
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+}
 // Load hideVetoed preference from localStorage (per-device preference)
 try{ hideVetoed = localStorage.getItem('hideVetoed')!=='false'; }catch(e){}
 // Load vetoes from localStorage if no Firebase
@@ -861,43 +880,33 @@ var AGENTS={
 };
 
 // ── Map init ──
-if(typeof L==='undefined'){
-  document.getElementById('map').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;background:#f8fafc;color:#6b7280;font-family:inherit;text-align:center;padding:24px"><div style="font-size:36px">🗺️</div><div style="font-size:14px;font-weight:700;color:#1a1f36">Map unavailable in preview</div><div style="font-size:12px;line-height:1.6">External scripts are blocked in this sandbox.<br>Deploy to GitHub Pages to see the full app.</div></div>';
-  // Stub out map-dependent functions so the rest of the UI still works
-  var map={on:function(){},getBounds:function(){return{getSouth:function(){return 51.28},getWest:function(){return-0.55},getNorth:function(){return 51.72},getEast:function(){return 0.32}};},getZoom:function(){return 11},closePopup:function(){},panTo:function(){}};
-  var renderer={};
-  var layers={commute:{clearLayers:function(){},addTo:function(){}},markers:{clearLayers:function(){},addTo:function(){}},thirdspace:{addTo:function(){}},schools:{clearLayers:function(){},addTo:function(){},addLayer:function(){}},gps:{clearLayers:function(){},addTo:function(){},addLayer:function(){}},pubs:{clearLayers:function(){},addTo:function(){},addLayer:function(){}},cycles:{clearLayers:function(){},addTo:function(){}},flights:{clearLayers:function(){},addTo:function(){}},flood:{clearLayers:function(){},addTo:function(){}},parks:{clearLayers:function(){},addTo:function(){}}};
-} else {
-  var map=L.map('map',{center:[51.505,-0.06],zoom:11,zoomControl:false});
-  L.control.zoom({position:'bottomright'}).addTo(map);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
-  var renderer=L.svg({padding:0.5});
-  var layers={
-    commute:L.layerGroup().addTo(map),
-    markers:L.layerGroup().addTo(map),
-    thirdspace:L.layerGroup().addTo(map),
-    schools:L.layerGroup(),
-    gps:L.layerGroup(),
-    pubs:L.layerGroup(),
-    cycles:L.layerGroup(),
-    flights:L.layerGroup(),
-    flood:L.layerGroup(),
-    parks:L.layerGroup()
-  };
-}
+var map=L.map('map',{center:[51.505,-0.06],zoom:11,zoomControl:false});
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+var renderer=L.svg({padding:0.5});
+var layers={
+  commute:L.layerGroup().addTo(map),
+  markers:L.layerGroup().addTo(map),
+  thirdspace:L.layerGroup().addTo(map),
+  schools:L.layerGroup(),
+  gps:L.layerGroup(),
+  pubs:L.layerGroup(),
+  cycles:L.layerGroup(),
+  flights:L.layerGroup(),
+  flood:L.layerGroup(),
+  parks:L.layerGroup()
+};
 var layerState={schools:false,gps:false,pubs:false,cycles:false,flights:false,flood:false,parks:false};
 var layerLoaded={schools:false,gps:false,pubs:false,cycles:false,flights:false,flood:false,parks:false};
 var layerPanelOpen=true;
 
 // ── Plot Third Space markers ──
-if(typeof L!=='undefined'){
-  THIRD_SPACE.forEach(function(ts){
-    var icon=L.divIcon({html:'<div class="ts-marker">🏋️</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
-    L.marker([ts.lat,ts.lng],{icon:icon})
-      .bindPopup('<b style="font-size:13px">'+ts.name+'</b><br><span style="font-size:11px;color:#6b7280">'+ts.addr+'</span>')
-      .addTo(layers.thirdspace);
-  });
-}
+THIRD_SPACE.forEach(function(ts){
+  var icon=L.divIcon({html:'<div class="ts-marker">🏋️</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
+  L.marker([ts.lat,ts.lng],{icon:icon})
+    .bindPopup('<b style="font-size:13px">'+ts.name+'</b><br><span style="font-size:11px;color:#6b7280">'+ts.addr+'</span>')
+    .addTo(layers.thirdspace);
+});
 
 // ── Layer panel ──
 function toggleLayerPanel(){
@@ -935,16 +944,14 @@ function getViewBounds(pad){
 
 // ── Re-load viewport layers on map moveend (debounced 600ms) ──
 var moveDebounce=null;
-if(typeof L!=='undefined'){
-  map.on('moveend',function(){
-    clearTimeout(moveDebounce);
-    moveDebounce=setTimeout(function(){
-      ['schools','gps','pubs','parks'].forEach(function(name){
-        if(layerState[name]){ reloadViewportLayer(name); }
-      });
-    },600);
-  });
-}
+map.on('moveend',function(){
+  clearTimeout(moveDebounce);
+  moveDebounce=setTimeout(function(){
+    ['schools','gps','pubs','parks'].forEach(function(name){
+      if(layerState[name]){ reloadViewportLayer(name); }
+    });
+  },600);
+});
 
 async function reloadViewportLayer(name){
   layers[name].clearLayers();
@@ -1143,7 +1150,7 @@ function updateCircleRadii(){
   var r=getRadiusForZoom(map.getZoom());
   zoomCircles.forEach(function(c){c.setRadius(r);});
 }
-if(typeof L!=='undefined') map.on('zoomend',updateCircleRadii);
+map.on('zoomend',updateCircleRadii);
 
 // ── Top-5 cache — rebuilt only when ratings change ──
 var top5Cache={};
@@ -1206,7 +1213,6 @@ function computeZones(){
       (vetoed?'✓ Vetoed — undo':'🚫 Never live here')+'</button>'+
       '<button onclick="closePopupOpenArea(\''+safeN+'\','+t1+','+t2+','+both+')" style="flex:1;padding:6px 4px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:#1a1f36;color:#a3e635">'+(isGuest?'View →':'Score →')+'</button>'+
       '</div>';
-    if(typeof L==='undefined') return; // skip map drawing if Leaflet unavailable
     var circle=L.circle([area.lat,area.lng],{
       renderer:renderer,radius:r,
       fillColor:color,color:(both||isTop)?borderColor:'transparent',
@@ -1231,11 +1237,9 @@ function computeZones(){
     zoomCircles.push(circle);
   });
 
-  function mkIcon(lbl,col){return typeof L!=='undefined'?L.divIcon({html:'<div style="background:'+col+';width:32px;height:32px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)">'+lbl+'</div>',className:'',iconSize:[32,32],iconAnchor:[16,16]}):null;}
-  if(typeof L!=='undefined'){
-    L.marker([CW.lat,CW.lng],{icon:mkIcon('CW','#38bdf8')}).bindPopup('<b>Canary Wharf</b><br>Nick').addTo(layers.markers);
-    L.marker([HOL.lat,HOL.lng],{icon:mkIcon('HOL','#f43f8e')}).bindPopup('<b>Holborn</b><br>Harriet').addTo(layers.markers);
-  }
+  function mkIcon(lbl,col){return L.divIcon({html:'<div style="background:'+col+';width:32px;height:32px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)">'+lbl+'</div>',className:'',iconSize:[32,32],iconAnchor:[16,16]});}
+  L.marker([CW.lat,CW.lng],{icon:mkIcon('CW','#38bdf8')}).bindPopup('<b>Canary Wharf</b><br>Nick').addTo(layers.markers);
+  L.marker([HOL.lat,HOL.lng],{icon:mkIcon('HOL','#f43f8e')}).bindPopup('<b>Holborn</b><br>Harriet').addTo(layers.markers);
   document.getElementById('stat-ideal').textContent=ideal;
   document.getElementById('stat-reachable').textContent=reach;
   document.getElementById('results-section').style.display='block';
@@ -1255,6 +1259,7 @@ function closePopupOpenArea(areaName,t1,t2,both){
   var area=AREAS.find(function(a){return a.name===areaName;});
   if(area) openAreaInfo(area,t1,t2,both);
 }
+function clearResults(){
   layers.commute.clearLayers(); layers.markers.clearLayers();
   zoomCircles=[];
   document.getElementById('results-section').style.display='none';
