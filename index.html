@@ -7,6 +7,8 @@
 <title>Harriet & Nick's House Hunt</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: #f8fafc; }
@@ -77,6 +79,9 @@ select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; font-size
 .score-circle.crime-low { background: #16a34a; }
 .score-circle.crime-mid { background: #d97706; }
 .score-circle.crime-high { background: #dc2626; }
+.score-circle.noise-low { background: #16a34a; }
+.score-circle.noise-mid { background: #d97706; }
+.score-circle.noise-high { background: #dc2626; }
 .score-detail { font-size: 12px; color: #6b7280; line-height: 1.5; }
 /* Third Space toggle */
 .ts-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding: 10px 12px; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; }
@@ -115,18 +120,55 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
 .leaflet-popup-content-wrapper { border-radius: 12px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important; }
 .leaflet-popup-content { margin: 12px 14px !important; min-width: 180px; }
 #map { flex: 1; }
+/* Login modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+.modal-box { background: #fff; border-radius: 16px; padding: 28px 24px; width: 280px; box-shadow: 0 16px 48px rgba(0,0,0,0.25); }
+.modal-title { font-size: 18px; font-weight: 700; color: #1a1f36; margin-bottom: 6px; }
+.modal-sub { font-size: 12px; color: #9ca3af; margin-bottom: 20px; line-height: 1.5; }
+.user-btn { width: 100%; padding: 14px; border-radius: 10px; border: 2px solid; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; margin-bottom: 10px; touch-action: manipulation; }
+.user-btn.nick { background: #eff6ff; border-color: #38bdf8; color: #0369a1; }
+.user-btn.harriet { background: #fdf2f8; border-color: #f43f8e; color: #be185d; }
+.user-indicator { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; margin-left: 6px; cursor: pointer; }
+.user-indicator.nick { background: #eff6ff; color: #0369a1; }
+.user-indicator.harriet { background: #fdf2f8; color: #be185d; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #9ca3af; display: inline-block; margin-right: 3px; vertical-align: middle; }
+.sync-dot.connected { background: #16a34a; }
+/* Areas table */
+.areas-table-wrap { padding: 10px 12px; }
+.areas-table-empty { padding: 32px 16px; text-align: center; color: #9ca3af; font-size: 13px; line-height: 1.6; }
+.areas-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.areas-table th { background: #1a1f36; color: #a3e635; padding: 7px 6px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; position: sticky; top: 0; z-index: 1; }
+.areas-table th:last-child { text-align: center; }
+.areas-table td { padding: 8px 6px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+.areas-table tr { cursor: pointer; transition: background 0.1s; }
+.areas-table tr:hover td { background: #f0fdf4; }
+.areas-table .nick-time { color: #0369a1; font-weight: 600; }
+.areas-table .harriet-time { color: #be185d; font-weight: 600; }
+.areas-table .area-name-cell { font-weight: 700; color: #1f2937; font-size: 12px; }
+.areas-table .both-badge { display: inline-block; background: #f0fdf4; border: 1px solid #84cc16; color: #16a34a; border-radius: 10px; padding: 1px 6px; font-size: 9px; font-weight: 700; margin-left: 3px; }
+.table-count { font-size: 11px; color: #9ca3af; padding: 8px 12px 4px; }
 </style>
 </head>
 <body>
 <header>
   <div class="logo">Harriet &amp; Nick's <span>House Hunt</span></div>
   <div class="header-status" id="header-status">Find your overlap zone</div>
+  <span class="user-indicator" id="user-indicator" onclick="showLogin()" title="Switch user"></span>
 </header>
+<div class="modal-overlay" id="login-modal">
+  <div class="modal-box">
+    <div class="modal-title">👋 Who are you?</div>
+    <div class="modal-sub">Your ratings will sync across both devices in real time.</div>
+    <button class="user-btn nick" onclick="setUser('nick')">🔵 I'm Nick</button>
+    <button class="user-btn harriet" onclick="setUser('harriet')">🩷 I'm Harriet</button>
+  </div>
+</div>
 <div class="main">
   <div class="sidebar" id="sidebar">
     <div class="tabs">
       <div class="tab active" id="tab-search" onclick="switchTab('search')">&#128269; Search</div>
       <div class="tab" id="tab-area" onclick="switchTab('area')">&#128205; Area Info</div>
+      <div class="tab" id="tab-table" onclick="switchTab('table')">&#128203; All Areas</div>
       <div class="tab" id="tab-results" onclick="switchTab('results')">&#127942; Results</div>
     </div>
 
@@ -235,6 +277,10 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
           <div id="ai-crime-content"><div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading...</div></div>
         </div>
         <div class="section">
+          <div class="section-title">&#128266; Noise &amp; Pollution</div>
+          <div id="ai-noise-content"><div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading...</div></div>
+        </div>
+        <div class="section">
           <div class="section-title" style="color:#38bdf8">&#128309; Nick's Rating</div>
           <div class="score-block">
             <div class="score-row" id="nick-scores"></div>
@@ -252,6 +298,14 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
           <button class="save-btn" onclick="saveRatings()">&#128190; Save Ratings</button>
           <div class="save-confirm" id="save-confirm">&#10003; Saved!</div>
         </div>
+      </div>
+    </div>
+
+    <!-- TABLE TAB -->
+    <div class="tab-content" id="content-table">
+      <div class="table-count" id="table-count"></div>
+      <div class="areas-table-wrap">
+        <div id="areas-table-inner"><div class="areas-table-empty">Run a search first to see all green areas in a table.</div></div>
       </div>
     </div>
 
@@ -274,6 +328,40 @@ var HOL={lat:51.5174,lng:-0.1200};
 var currentArea=null;
 var nickScore=0, harrietScore=0;
 var zoomCircles=[];
+var currentUser=null;
+var db=null;
+var ratingsCache={};
+
+// ── Firebase init ──
+var firebaseConfig={
+  apiKey:"AIzaSyDemo-ReplaceWithYourActualFirebaseKey",
+  authDomain:"nestfinder-househunt.firebaseapp.com",
+  databaseURL:"https://nestfinder-househunt-default-rtdb.firebaseio.com",
+  projectId:"nestfinder-househunt"
+};
+try{
+  firebase.initializeApp(firebaseConfig);
+  db=firebase.database();
+  // Listen for all ratings changes in real time
+  db.ref('ratings').on('value',function(snap){
+    ratingsCache=snap.val()||{};
+    renderResults();
+  });
+}catch(e){ console.warn('Firebase not configured, using localStorage fallback'); }
+
+// ── User login ──
+function showLogin(){
+  document.getElementById('login-modal').style.display='flex';
+}
+function setUser(name){
+  currentUser=name;
+  document.getElementById('login-modal').style.display='none';
+  var ind=document.getElementById('user-indicator');
+  ind.className='user-indicator '+name;
+  ind.innerHTML='<span class="sync-dot'+(db?' connected':'')+'"></span>'+(name==='nick'?'Nick':'Harriet');
+}
+// Show login on load
+window.addEventListener('load',function(){ showLogin(); });
 
 // ── Third Space locations (verified March 2026) ──
 var THIRD_SPACE=[
@@ -684,12 +772,15 @@ function nearestTS(lat,lng){
 
 // ── Tab switching ──
 var sidebarOpen=true;
+// Store green areas for table view
+var greenAreas=[];
 function switchTab(t){
-  ['search','area','results'].forEach(function(n){
+  ['search','area','table','results'].forEach(function(n){
     document.getElementById('tab-'+n).className='tab'+(n===t?' active':'');
     document.getElementById('content-'+n).className='tab-content'+(n===t?' active':'');
   });
   if(t==='results') renderResults();
+  if(t==='table') renderTable();
 }
 function toggleSidebar(){
   sidebarOpen=!sidebarOpen;
@@ -717,6 +808,7 @@ function computeZones(){
 
   layers.commute.clearLayers(); layers.markers.clearLayers();
   zoomCircles=[];
+  greenAreas=[];
   document.getElementById('results-section').style.display='none';
 
   var journeyTimes={};
@@ -747,7 +839,7 @@ function computeZones(){
       if(ts.miles>1)return;
     }
     var both=inP1&&inP2;
-    if(both){ideal++;} reach++;
+    if(both){ideal++; greenAreas.push({area:area,t1:t1,t2:t2,both:both});} reach++;
     var color=both?'#84cc16':inP1?'#38bdf8':'#f43f8e';
     var circle=L.circle([area.lat,area.lng],{
       renderer:renderer,radius:r,
@@ -831,9 +923,11 @@ function openAreaInfo(area,t1,t2,both){
   document.getElementById('ai-parks').innerHTML='';
   document.getElementById('ai-datenight-content').innerHTML='<div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading...</div>';
   document.getElementById('ai-crime-content').innerHTML='<div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading...</div>';
+  document.getElementById('ai-noise-content').innerHTML='<div class="lifestyle-loading">&#9679;&#9679;&#9679; Loading...</div>';
   fetchLifestyle(area.name);
   fetchDateNight(area.name);
   fetchCrime(area.name);
+  fetchNoise(area.name);
 }
 
 // ── Score buttons ──
@@ -850,14 +944,35 @@ function setScore(person,val){
   else{harrietScore=val;renderScoreButtons('harriet-scores','harriet',val);}
 }
 
-// ── Save/load ratings ──
+// ── Save/load ratings — Firebase with localStorage fallback ──
 function getSaved(name){
+  var key='area_'+name.replace(/[^a-zA-Z0-9]/g,'_');
+  if(ratingsCache[key]) return ratingsCache[key];
   try{return JSON.parse(localStorage.getItem('area_'+name))||{};}catch(e){return {};}
 }
 function saveRatings(){
   if(!currentArea)return;
-  var data={nickScore:nickScore,harrietScore:harrietScore,nickComment:document.getElementById('nick-comment').value,harrietComment:document.getElementById('harriet-comment').value};
-  try{localStorage.setItem('area_'+currentArea,JSON.stringify(data));}catch(e){}
+  var key='area_'+currentArea.replace(/[^a-zA-Z0-9]/g,'_');
+  var existing=getSaved(currentArea);
+  var data=Object.assign({},existing);
+  // Only overwrite the current user's fields
+  if(currentUser==='nick'){
+    data.nickScore=nickScore;
+    data.nickComment=document.getElementById('nick-comment').value;
+  } else if(currentUser==='harriet'){
+    data.harrietScore=harrietScore;
+    data.harrietComment=document.getElementById('harriet-comment').value;
+  } else {
+    data.nickScore=nickScore;
+    data.harrietScore=harrietScore;
+    data.nickComment=document.getElementById('nick-comment').value;
+    data.harrietComment=document.getElementById('harriet-comment').value;
+  }
+  if(db){
+    db.ref('ratings/'+key).set(data);
+  } else {
+    try{localStorage.setItem('area_'+currentArea,JSON.stringify(data));}catch(e){}
+  }
   document.getElementById('save-confirm').style.display='block';
   setTimeout(function(){document.getElementById('save-confirm').style.display='none';},2000);
 }
@@ -893,6 +1008,41 @@ function renderResults(){
       (comment?'<div class="result-comment">"'+comment.substring(0,60)+(comment.length>60?'...':'')+'"</div>':'')+
     '</div>';
   }).join('');
+}
+// ── Table view ──
+function renderTable(){
+  var el=document.getElementById('areas-table-inner');
+  var countEl=document.getElementById('table-count');
+  if(!greenAreas.length){
+    el.innerHTML='<div class="areas-table-empty">&#128269; Run a search first to see all green areas in a table.<br><br>Green areas are those where both Nick and Harriet are within their commute limits.</div>';
+    countEl.textContent='';
+    return;
+  }
+  // Sort alphabetically by default
+  var sorted=greenAreas.slice().sort(function(a,b){return a.area.name.localeCompare(b.area.name);});
+  countEl.textContent=sorted.length+' ideal areas — both within commute limits';
+  el.innerHTML='<table class="areas-table">'+
+    '<thead><tr>'+
+      '<th>Area</th>'+
+      '<th style="text-align:center">&#128309; Nick</th>'+
+      '<th style="text-align:center">&#129145; Harriet</th>'+
+      '<th style="text-align:center">Rated</th>'+
+    '</tr></thead>'+
+    '<tbody>'+
+    sorted.map(function(item){
+      var saved=getSaved(item.area.name);
+      var rated=saved.nickScore||saved.harrietScore;
+      var ratedHtml=rated
+        ? '<span style="font-size:11px;font-weight:700;color:#16a34a">&#9733; '+(saved.nickScore||0)+'+'+(saved.harrietScore||0)+'</span>'
+        : '<span style="color:#d1d5db;font-size:11px">—</span>';
+      return '<tr onclick="jumpToArea(\''+item.area.name.replace(/'/g,"\\'")+'\')" title="Click to explore '+item.area.name+'">'+
+        '<td><span class="area-name-cell">'+item.area.name+'</span><span class="both-badge">✓</span></td>'+
+        '<td style="text-align:center"><span class="nick-time">'+item.t1+'m</span></td>'+
+        '<td style="text-align:center"><span class="harriet-time">'+item.t2+'m</span></td>'+
+        '<td style="text-align:center">'+ratedHtml+'</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table>';
 }
 function jumpToArea(name){
   var area=AREAS.find(function(a){return a.name===name;});
@@ -1009,6 +1159,34 @@ async function fetchCrime(areaName){
       '</div>';
   }catch(e){
     document.getElementById('ai-crime-content').innerHTML='<div class="lifestyle-loading" style="color:#f43f8e">Could not load data</div>';
+  }
+}
+// ── Claude API: noise & pollution ──
+async function fetchNoise(areaName){
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-ash-pchd':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:200,
+        system:'You are a London local knowledge expert. Respond ONLY with valid JSON, no markdown, no explanation. Format: {"score":NUMBER_1_TO_10,"summary":"one short sentence"}. Score 1=very quiet and clean, 10=very noisy and polluted.',
+        messages:[{role:'user',content:'Rate the noise and pollution level in '+areaName+' in London on a scale of 1 to 10 where 1 is very quiet/clean and 10 is very noisy/polluted. Consider traffic, flight paths, rail lines, industrial areas, and air quality. Return only JSON.'}]
+      })
+    });
+    var data=await resp.json();
+    var text=data.content&&data.content[0]?data.content[0].text:'';
+    var parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    var score=parsed.score;
+    var colorClass=score<=4?'noise-low':score<=7?'noise-mid':'noise-high';
+    var label=score<=4?'Low':score<=7?'Moderate':'High';
+    document.getElementById('ai-noise-content').innerHTML=
+      '<div class="score-display">'+
+        '<div class="score-circle '+colorClass+'">'+score+'</div>'+
+        '<div class="score-detail"><b>'+score+'/10 — '+label+'</b><br>'+parsed.summary+'</div>'+
+      '</div>';
+  }catch(e){
+    document.getElementById('ai-noise-content').innerHTML='<div class="lifestyle-loading" style="color:#f43f8e">Could not load data</div>';
   }
 }
 </script>
