@@ -73,6 +73,21 @@ select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; font-size
 .lifestyle-loading { font-size: 12px; color: #9ca3af; padding: 12px 0; text-align: center; }
 .ts-nearby { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 10px; margin-top: 4px; font-size: 12px; color: #16a34a; font-weight: 600; }
 .ts-far { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-top: 4px; font-size: 12px; color: #6b7280; }
+.ev-row { display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #f0fdf4; }
+.ev-row:last-child { border-bottom:none; }
+.ev-band { font-size:11px; color:#374151; font-weight:600; }
+.ev-count { font-size:12px; font-weight:700; color:#16a34a; background:#f0fdf4; border-radius:10px; padding:1px 8px; }
+.bills-card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+.bills-card-title { font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
+.bills-row { display:flex; justify-content:space-between; align-items:center; padding:3px 0; font-size:12px; }
+.bills-label { color:#374151; }
+.bills-value { font-weight:700; color:#1a1f36; }
+.bills-rank { font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; margin-left:6px; }
+.rank-good { background:#dcfce7; color:#16a34a; }
+.rank-mid { background:#fef9c3; color:#854d0e; }
+.rank-bad { background:#fee2e2; color:#b91c1c; }
+.bb-pill { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; margin:2px 3px 2px 0; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+.bb-pill.full-fibre { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
 .score-display { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
 .score-circle { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #fff; flex-shrink: 0; }
 .score-circle.datenight { background: linear-gradient(135deg, #f43f8e, #a855f7); }
@@ -396,6 +411,10 @@ function setUser(name){
           <div class="area-commute" id="ai-area-commute2"></div>
         </div>
         <div class="section">
+          <div class="section-title">&#128176; Household Bills</div>
+          <div id="ai-bills"></div>
+        </div>
+        <div class="section">
           <div class="section-title">&#127968; Estate Agents Nearby</div>
           <div id="ai-agents"></div>
         </div>
@@ -468,11 +487,6 @@ function setUser(name){
       <span id="layer-panel-arrow">&#9660;</span>
     </div>
     <div id="layer-panel-body">
-      <div class="layer-row" onclick="toggleLayer('schools')">
-        <span class="layer-icon">&#127979;</span>
-        <span class="layer-name">Schools</span>
-        <span class="layer-toggle" id="lt-schools"></span>
-      </div>
       <div class="layer-row" onclick="toggleLayer('gps')">
         <span class="layer-icon">&#127973;</span>
         <span class="layer-name">GP Surgeries</span>
@@ -483,11 +497,6 @@ function setUser(name){
         <span class="layer-name">Pubs</span>
         <span class="layer-toggle" id="lt-pubs"></span>
       </div>
-      <div class="layer-row" onclick="toggleLayer('cycles')">
-        <span class="layer-icon">&#128690;</span>
-        <span class="layer-name">Cycle Routes</span>
-        <span class="layer-toggle" id="lt-cycles"></span>
-      </div>
       <div class="layer-row" onclick="toggleLayer('flights')">
         <span class="layer-icon">&#9992;</span>
         <span class="layer-name">Flight Paths</span>
@@ -497,11 +506,6 @@ function setUser(name){
         <span class="layer-icon">&#127754;</span>
         <span class="layer-name">Flood Zones</span>
         <span class="layer-toggle" id="lt-flood"></span>
-      </div>
-      <div class="layer-row" onclick="toggleLayer('parks')">
-        <span class="layer-icon">&#127807;</span>
-        <span class="layer-name">Green Spaces</span>
-        <span class="layer-toggle" id="lt-parks"></span>
       </div>
       <div id="layer-loading" style="display:none;font-size:10px;color:#9ca3af;padding:4px 2px;text-align:center">Loading...</div>
     </div>
@@ -871,6 +875,258 @@ var AREAS=[
 
 var JOURNEY_TIMES={"Abbey Road": {"cw": 10, "hol": 26}, "Acton Central": {"cw": 48, "hol": 42}, "Acton Main Line": {"cw": 46, "hol": 40}, "Acton Town": {"cw": 46, "hol": 38}, "Angel": {"cw": 20, "hol": 10}, "Archway": {"cw": 34, "hol": 26}, "Arsenal": {"cw": 26, "hol": 20}, "Baker Street": {"cw": 26, "hol": 18}, "Balham": {"cw": 36, "hol": 30}, "Bank": {"cw": 8, "hol": 12}, "Barbican": {"cw": 14, "hol": 8}, "Barons Court": {"cw": 38, "hol": 32}, "Battersea Park": {"cw": 22, "hol": 24}, "Battersea Power Station": {"cw": 18, "hol": 20}, "Bayswater": {"cw": 28, "hol": 22}, "Beckton": {"cw": 22, "hol": 42}, "Beckton Park": {"cw": 20, "hol": 40}, "Bermondsey": {"cw": 5, "hol": 18}, "Bethnal Green": {"cw": 16, "hol": 16}, "Blackfriars": {"cw": 12, "hol": 12}, "Blackheath": {"cw": 22, "hol": 34}, "Blackhorse Road": {"cw": 30, "hol": 28}, "Blackwall": {"cw": 6, "hol": 21}, "Bond Street": {"cw": 20, "hol": 12}, "Borough": {"cw": 14, "hol": 14}, "Bow Church": {"cw": 11, "hol": 26}, "Bow Road": {"cw": 16, "hol": 24}, "Brent Cross": {"cw": 46, "hol": 38}, "Brent Cross West": {"cw": 46, "hol": 38}, "Brixton": {"cw": 30, "hol": 24}, "Brockley": {"cw": 22, "hol": 30}, "Bromley-by-Bow": {"cw": 14, "hol": 26}, "Brondesbury": {"cw": 38, "hol": 30}, "Brondesbury Park": {"cw": 40, "hol": 32}, "Bruce Grove": {"cw": 36, "hol": 32}, "Caledonian Road": {"cw": 24, "hol": 20}, "Caledonian Road and Barnsbury": {"cw": 24, "hol": 20}, "Cambridge Heath": {"cw": 18, "hol": 18}, "Camden Road": {"cw": 26, "hol": 22}, "Camden Town": {"cw": 26, "hol": 20}, "Canada Water": {"cw": 3, "hol": 18}, "Canary Wharf": {"cw": 0, "hol": 16}, "Canning Town": {"cw": 8, "hol": 22}, "Cannon Street": {"cw": 10, "hol": 14}, "Canonbury": {"cw": 24, "hol": 18}, "Catford": {"cw": 30, "hol": 36}, "Catford Bridge": {"cw": 30, "hol": 36}, "Chalk Farm": {"cw": 28, "hol": 22}, "Chancery Lane": {"cw": 18, "hol": 4}, "Charing Cross": {"cw": 20, "hol": 10}, "Charlton": {"cw": 24, "hol": 44}, "Chiswick": {"cw": 50, "hol": 44}, "Chiswick Park": {"cw": 48, "hol": 40}, "City Thameslink": {"cw": 14, "hol": 10}, "Clapham Common": {"cw": 30, "hol": 26}, "Clapham High Street": {"cw": 26, "hol": 24}, "Clapham Junction": {"cw": 25, "hol": 30}, "Clapham North": {"cw": 28, "hol": 22}, "Clapham South": {"cw": 34, "hol": 28}, "Clapton": {"cw": 26, "hol": 24}, "Colliers Wood": {"cw": 44, "hol": 42}, "Covent Garden": {"cw": 18, "hol": 8}, "Crofton Park": {"cw": 28, "hol": 36}, "Crossharbour and London Arena": {"cw": 5, "hol": 20}, "Crouch Hill": {"cw": 34, "hol": 28}, "Crystal Palace": {"cw": 40, "hol": 46}, "Custom House": {"cw": 14, "hol": 34}, "Cutty Sark": {"cw": 14, "hol": 34}, "Cyprus": {"cw": 24, "hol": 44}, "Dalston Junction": {"cw": 22, "hol": 20}, "Dalston Kingsland": {"cw": 22, "hol": 20}, "Denmark Hill": {"cw": 22, "hol": 28}, "Deptford": {"cw": 22, "hol": 32}, "Deptford Bridge": {"cw": 20, "hol": 34}, "Devons Road": {"cw": 10, "hol": 25}, "Dollis Hill": {"cw": 46, "hol": 38}, "Drayton Park": {"cw": 22, "hol": 18}, "Earl's Court": {"cw": 34, "hol": 24}, "Earlsfield": {"cw": 32, "hol": 40}, "East Acton": {"cw": 42, "hol": 34}, "East Finchley": {"cw": 44, "hol": 36}, "East Ham": {"cw": 22, "hol": 38}, "East India": {"cw": 7, "hol": 22}, "East Putney": {"cw": 42, "hol": 40}, "Elephant and Castle": {"cw": 16, "hol": 14}, "Elverson Road": {"cw": 20, "hol": 38}, "Embankment": {"cw": 18, "hol": 10}, "Essex Road": {"cw": 22, "hol": 14}, "Euston": {"cw": 20, "hol": 16}, "Euston Square": {"cw": 20, "hol": 14}, "Farringdon": {"cw": 14, "hol": 8}, "Fenchurch Street": {"cw": 12, "hol": 18}, "Finchley Road": {"cw": 34, "hol": 26}, "Finchley Road and Frognal": {"cw": 34, "hol": 28}, "Finsbury Park": {"cw": 28, "hol": 22}, "Forest Hill": {"cw": 32, "hol": 38}, "Fulham Broadway": {"cw": 38, "hol": 32}, "Gloucester Road": {"cw": 34, "hol": 26}, "Golders Green": {"cw": 42, "hol": 34}, "Goldhawk Road": {"cw": 36, "hol": 30}, "Goodge Street": {"cw": 20, "hol": 10}, "Gospel Oak": {"cw": 30, "hol": 26}, "Great Portland Street": {"cw": 22, "hol": 14}, "Green Park": {"cw": 18, "hol": 12}, "Greenwich": {"cw": 16, "hol": 36}, "Gunnersbury": {"cw": 48, "hol": 42}, "Hackney Central": {"cw": 22, "hol": 22}, "Hackney Downs": {"cw": 22, "hol": 22}, "Hackney Wick": {"cw": 20, "hol": 22}, "Haggerston": {"cw": 20, "hol": 18}, "Hammersmith": {"cw": 34, "hol": 28}, "Hampstead": {"cw": 34, "hol": 28}, "Hampstead Heath": {"cw": 32, "hol": 28}, "Harlesden": {"cw": 44, "hol": 38}, "Herne Hill": {"cw": 28, "hol": 30}, "Heron Quays": {"cw": 2, "hol": 17}, "High Street Kensington": {"cw": 34, "hol": 26}, "Highbury and Islington": {"cw": 22, "hol": 16}, "Highgate": {"cw": 40, "hol": 32}, "Hither Green": {"cw": 26, "hol": 34}, "Holborn": {"cw": 16, "hol": 0}, "Holland Park": {"cw": 32, "hol": 26}, "Holloway Road": {"cw": 28, "hol": 22}, "Homerton": {"cw": 22, "hol": 24}, "Honor Oak Park": {"cw": 30, "hol": 36}, "Hoxton": {"cw": 18, "hol": 16}, "Hyde Park Corner": {"cw": 24, "hol": 18}, "Island Gardens": {"cw": 8, "hol": 28}, "Kennington": {"cw": 20, "hol": 16}, "Kensal Green": {"cw": 40, "hol": 32}, "Kensal Rise": {"cw": 40, "hol": 32}, "Kensington Olympia": {"cw": 38, "hol": 30}, "Kentish Town": {"cw": 28, "hol": 22}, "Kentish Town West": {"cw": 28, "hol": 22}, "Kilburn": {"cw": 38, "hol": 30}, "Kilburn High Road": {"cw": 36, "hol": 28}, "Kilburn Park": {"cw": 36, "hol": 28}, "King George V": {"cw": 26, "hol": 46}, "Kings Cross St Pancras": {"cw": 18, "hol": 14}, "Knightsbridge": {"cw": 26, "hol": 18}, "Ladbroke Grove": {"cw": 36, "hol": 28}, "Lambeth North": {"cw": 18, "hol": 14}, "Lancaster Gate": {"cw": 26, "hol": 20}, "Langdon Park": {"cw": 10, "hol": 25}, "Latimer Road": {"cw": 38, "hol": 32}, "Lea Bridge": {"cw": 28, "hol": 30}, "Leicester Square": {"cw": 18, "hol": 8}, "Lewisham": {"cw": 18, "hol": 32}, "Leyton": {"cw": 20, "hol": 30}, "Leyton Midland Road": {"cw": 22, "hol": 32}, "Limehouse": {"cw": 12, "hol": 20}, "Liverpool Street": {"cw": 8, "hol": 10}, "London Bridge": {"cw": 8, "hol": 16}, "London Fields": {"cw": 20, "hol": 20}, "Loughborough Junction": {"cw": 24, "hol": 26}, "Maida Vale": {"cw": 32, "hol": 26}, "Manor House": {"cw": 38, "hol": 30}, "Mansion House": {"cw": 11, "hol": 15}, "Marble Arch": {"cw": 22, "hol": 14}, "Marylebone": {"cw": 26, "hol": 18}, "Maze Hill": {"cw": 22, "hol": 42}, "Mile End": {"cw": 14, "hol": 20}, "Moorgate": {"cw": 12, "hol": 8}, "Morden": {"cw": 50, "hol": 48}, "Morden Road": {"cw": 48, "hol": 46}, "Mornington Crescent": {"cw": 26, "hol": 20}, "New Cross": {"cw": 20, "hol": 30}, "New Cross Gate": {"cw": 20, "hol": 30}, "Nine Elms": {"cw": 18, "hol": 18}, "North Greenwich": {"cw": 8, "hol": 22}, "Notting Hill Gate": {"cw": 28, "hol": 22}, "Nunhead": {"cw": 26, "hol": 32}, "Old Street": {"cw": 16, "hol": 12}, "Oval": {"cw": 22, "hol": 18}, "Oxford Circus": {"cw": 20, "hol": 10}, "Paddington": {"cw": 22, "hol": 18}, "Parsons Green": {"cw": 40, "hol": 36}, "Peckham Rye": {"cw": 22, "hol": 28}, "Piccadilly Circus": {"cw": 20, "hol": 10}, "Pimlico": {"cw": 22, "hol": 18}, "Poplar": {"cw": 5, "hol": 20}, "Putney": {"cw": 35, "hol": 40}, "Putney Bridge": {"cw": 42, "hol": 38}, "Queens Park": {"cw": 38, "hol": 30}, "Queenstown Road": {"cw": 22, "hol": 20}, "Queensway": {"cw": 28, "hol": 22}, "Ravenscourt Park": {"cw": 40, "hol": 34}, "Rectory Road": {"cw": 28, "hol": 24}, "Regents Park": {"cw": 24, "hol": 16}, "Richmond": {"cw": 52, "hol": 50}, "Rotherhithe": {"cw": 8, "hol": 22}, "Royal Albert": {"cw": 18, "hol": 38}, "Russell Square": {"cw": 18, "hol": 6}, "Seven Sisters": {"cw": 30, "hol": 28}, "Shadwell": {"cw": 12, "hol": 20}, "Shepherd's Bush": {"cw": 34, "hol": 26}, "Shepherd's Bush Market": {"cw": 34, "hol": 28}, "Shoreditch High Street": {"cw": 14, "hol": 14}, "Sloane Square": {"cw": 28, "hol": 20}, "South Kensington": {"cw": 32, "hol": 24}, "South Wimbledon": {"cw": 46, "hol": 44}, "Southfields": {"cw": 44, "hol": 46}, "Southwark": {"cw": 10, "hol": 10}, "St James's Park": {"cw": 20, "hol": 14}, "St Johns Wood": {"cw": 28, "hol": 20}, "St Pauls": {"cw": 12, "hol": 8}, "Stamford Brook": {"cw": 44, "hol": 38}, "Stepney Green": {"cw": 14, "hol": 18}, "Stockwell": {"cw": 24, "hol": 20}, "Stoke Newington": {"cw": 28, "hol": 24}, "Stratford": {"cw": 12, "hol": 28}, "Stratford High Street": {"cw": 12, "hol": 27}, "Stratford International": {"cw": 14, "hol": 29}, "Surbiton": {"cw": 40, "hol": 50}, "Surrey Quays": {"cw": 10, "hol": 22}, "Swiss Cottage": {"cw": 30, "hol": 24}, "Sydenham": {"cw": 36, "hol": 42}, "Temple": {"cw": 18, "hol": 10}, "Tooting": {"cw": 42, "hol": 36}, "Tooting Bec": {"cw": 38, "hol": 32}, "Tooting Broadway": {"cw": 40, "hol": 34}, "Tottenham Court Road": {"cw": 18, "hol": 6}, "Tottenham Hale": {"cw": 28, "hol": 26}, "Tower Gateway": {"cw": 10, "hol": 16}, "Tower Hill": {"cw": 10, "hol": 16}, "Tufnell Park": {"cw": 30, "hol": 24}, "Tulse Hill": {"cw": 32, "hol": 34}, "Turnham Green": {"cw": 46, "hol": 38}, "Turnpike Lane": {"cw": 46, "hol": 38}, "Twickenham": {"cw": 50, "hol": 55}, "Upton Park": {"cw": 18, "hol": 32}, "Vauxhall": {"cw": 18, "hol": 14}, "Victoria": {"cw": 22, "hol": 16}, "Walthamstow Central": {"cw": 26, "hol": 28}, "Walthamstow Queens Road": {"cw": 26, "hol": 28}, "Wandsworth Common": {"cw": 32, "hol": 36}, "Wandsworth Road": {"cw": 24, "hol": 22}, "Wandsworth Town": {"cw": 30, "hol": 36}, "Wapping": {"cw": 16, "hol": 22}, "Warren Street": {"cw": 22, "hol": 16}, "Warwick Avenue": {"cw": 30, "hol": 24}, "Waterloo": {"cw": 15, "hol": 10}, "West Acton": {"cw": 48, "hol": 42}, "West Brompton": {"cw": 38, "hol": 32}, "West Ham": {"cw": 14, "hol": 28}, "West Hampstead": {"cw": 36, "hol": 28}, "West Hampstead Thameslink": {"cw": 36, "hol": 28}, "West India Quay": {"cw": 3, "hol": 18}, "West Kensington": {"cw": 38, "hol": 30}, "Westminster": {"cw": 16, "hol": 10}, "White City": {"cw": 36, "hol": 28}, "Whitechapel": {"cw": 6, "hol": 16}, "Willesden Green": {"cw": 44, "hol": 36}, "Willesden Junction": {"cw": 42, "hol": 36}, "Wimbledon": {"cw": 38, "hol": 42}, "Wimbledon Park": {"cw": 40, "hol": 44}, "Wood Green": {"cw": 48, "hol": 40}, "Woodgrange Park": {"cw": 22, "hol": 34}, "Woolwich": {"cw": 20, "hol": 38}, "Woolwich Arsenal": {"cw": 20, "hol": 38}, "Monument": {"cw": 8, "hol": 12}, "Belsize Park": {"cw": 30, "hol": 24}};
 
+
+// ── Borough council tax & broadband data (Band D 2024/25) ──
+// Ranked 1=cheapest (Wandsworth) to 33=most expensive (Kingston) across 33 London boroughs
+var BOROUGH_DATA={
+  'Wandsworth':    {borough:'Wandsworth',          tax:981,  rank:1,  rankOf:33},
+  'Westminster':   {borough:'Westminster',         tax:975,  rank:2,  rankOf:33},
+  'Kensington':    {borough:'Kensington & Chelsea',tax:1105, rank:3,  rankOf:33},
+  'Hammersmith':   {borough:'Hammersmith & Fulham',tax:1189, rank:4,  rankOf:33},
+  'City':          {borough:'City of London',      tax:1230, rank:5,  rankOf:33},
+  'Tower Hamlets': {borough:'Tower Hamlets',       tax:1393, rank:6,  rankOf:33},
+  'Southwark':     {borough:'Southwark',           tax:1414, rank:7,  rankOf:33},
+  'Hackney':       {borough:'Hackney',             tax:1432, rank:8,  rankOf:33},
+  'Lambeth':       {borough:'Lambeth',             tax:1457, rank:9,  rankOf:33},
+  'Camden':        {borough:'Camden',              tax:1462, rank:10, rankOf:33},
+  'Islington':     {borough:'Islington',           tax:1489, rank:11, rankOf:33},
+  'Newham':        {borough:'Newham',              tax:1497, rank:12, rankOf:33},
+  'Greenwich':     {borough:'Greenwich',           tax:1524, rank:13, rankOf:33},
+  'Lewisham':      {borough:'Lewisham',            tax:1548, rank:14, rankOf:33},
+  'Haringey':      {borough:'Haringey',            tax:1572, rank:15, rankOf:33},
+  'Waltham Forest':{borough:'Waltham Forest',      tax:1601, rank:16, rankOf:33},
+  'Barking':       {borough:'Barking & Dagenham',  tax:1612, rank:17, rankOf:33},
+  'Redbridge':     {borough:'Redbridge',           tax:1638, rank:18, rankOf:33},
+  'Enfield':       {borough:'Enfield',             tax:1654, rank:19, rankOf:33},
+  'Barnet':        {borough:'Barnet',              tax:1688, rank:20, rankOf:33},
+  'Ealing':        {borough:'Ealing',              tax:1698, rank:21, rankOf:33},
+  'Hounslow':      {borough:'Hounslow',            tax:1712, rank:22, rankOf:33},
+  'Merton':        {borough:'Merton',              tax:1810, rank:23, rankOf:33},
+  'Bexley':        {borough:'Bexley',              tax:1821, rank:24, rankOf:33},
+  'Bromley':       {borough:'Bromley',             tax:1885, rank:25, rankOf:33},
+  'Hillingdon':    {borough:'Hillingdon',          tax:1902, rank:26, rankOf:33},
+  'Havering':      {borough:'Havering',            tax:1952, rank:27, rankOf:33},
+  'Sutton':        {borough:'Sutton',              tax:1988, rank:28, rankOf:33},
+  'Richmond':      {borough:'Richmond upon Thames',tax:2048, rank:29, rankOf:33},
+  'Harrow':        {borough:'Harrow',              tax:2154, rank:30, rankOf:33},
+  'Croydon':       {borough:'Croydon',             tax:2480, rank:31, rankOf:33},
+  'Kingston':      {borough:'Kingston upon Thames',tax:2488, rank:32, rankOf:33},
+  'Hackney-N':     {borough:'Hackney',             tax:1432, rank:8,  rankOf:33},
+};
+
+// Area name → borough key lookup
+var AREA_BOROUGH={
+  // Wandsworth
+  'Clapham Junction':'Wandsworth','Wandsworth Common':'Wandsworth','Wandsworth Road':'Wandsworth',
+  'Wandsworth Town':'Wandsworth','Tooting':'Wandsworth','Tooting Bec':'Wandsworth','Tooting Broadway':'Wandsworth',
+  'Earlsfield':'Wandsworth','Balham':'Wandsworth','Queenstown Road':'Wandsworth','Nine Elms':'Wandsworth',
+  'Battersea Park':'Wandsworth','Battersea Power Station':'Wandsworth',
+  // Westminster
+  'Westminster':'Westminster','Victoria':'Westminster','Pimlico':'Westminster','Charing Cross':'Westminster',
+  'Embankment':'Westminster','St James\'s Park':'Westminster','Green Park':'Westminster',
+  'Oxford Circus':'Westminster','Bond Street':'Westminster','Marble Arch':'Westminster',
+  'Baker Street':'Westminster','Marylebone':'Westminster','Edgware Road':'Westminster',
+  'Paddington':'Westminster','Lancaster Gate':'Westminster','Hyde Park Corner':'Westminster',
+  'Regent\'s Park':'Westminster','Great Portland Street':'Westminster',
+  // Kensington & Chelsea
+  'Knightsbridge':'Kensington','Sloane Square':'Kensington','South Kensington':'Kensington',
+  'Gloucester Road':'Kensington','High Street Kensington':'Kensington','Notting Hill Gate':'Kensington',
+  'Holland Park':'Kensington','Kensington Olympia':'Kensington',
+  // Hammersmith & Fulham
+  'Hammersmith':'Hammersmith','Fulham Broadway':'Hammersmith','Parsons Green':'Hammersmith',
+  'Putney Bridge':'Hammersmith','Barons Court':'Hammersmith','West Kensington':'Hammersmith',
+  'West Brompton':'Hammersmith','Ravenscourt Park':'Hammersmith','Stamford Brook':'Hammersmith',
+  'Shepherd\'s Bush':'Hammersmith','Shepherd\'s Bush Market':'Hammersmith','Goldhawk Road':'Hammersmith',
+  'Latimer Road':'Hammersmith','White City':'Hammersmith',
+  // Tower Hamlets
+  'Canary Wharf':'Tower Hamlets','Heron Quays':'Tower Hamlets','West India Quay':'Tower Hamlets',
+  'Crossharbour and London Arena':'Tower Hamlets','South Quay':'Tower Hamlets','Mudchute':'Tower Hamlets',
+  'Island Gardens':'Tower Hamlets','Blackwall':'Tower Hamlets','East India':'Tower Hamlets',
+  'Poplar':'Tower Hamlets','Devons Road':'Tower Hamlets','Langdon Park':'Tower Hamlets',
+  'All Saints':'Tower Hamlets','Bow Church':'Tower Hamlets','Bromley-by-Bow':'Tower Hamlets',
+  'Bow Road':'Tower Hamlets','Mile End':'Tower Hamlets','Stepney Green':'Tower Hamlets',
+  'Whitechapel':'Tower Hamlets','Shadwell':'Tower Hamlets','Wapping':'Tower Hamlets',
+  'Limehouse':'Tower Hamlets','Bethnal Green':'Tower Hamlets','Cambridge Heath':'Tower Hamlets',
+  // Southwark
+  'Canada Water':'Southwark','Bermondsey':'Southwark','London Bridge':'Southwark',
+  'Borough':'Southwark','Elephant and Castle':'Southwark','Southwark':'Southwark',
+  'Waterloo':'Southwark','Kennington':'Southwark','Oval':'Southwark',
+  'Denmark Hill':'Southwark','Peckham Rye':'Southwark','Queens Road Peckham':'Southwark',
+  'Nunhead':'Southwark','Honor Oak Park':'Southwark','Loughborough Junction':'Southwark',
+  // Hackney
+  'Hackney Central':'Hackney','Hackney Downs':'Hackney','Hackney Wick':'Hackney',
+  'Haggerston':'Hackney','Hoxton':'Hackney','London Fields':'Hackney',
+  'Cambridge Heath':'Hackney','Dalston Junction':'Hackney','Dalston Kingsland':'Hackney',
+  'Stoke Newington':'Hackney','Rectory Road':'Hackney','Clapton':'Hackney',
+  'Homerton':'Hackney','Lea Bridge':'Hackney',
+  // Lambeth
+  'Vauxhall':'Lambeth','Stockwell':'Lambeth','Brixton':'Lambeth','Herne Hill':'Lambeth',
+  'Tulse Hill':'Lambeth','Clapham North':'Lambeth','Clapham Common':'Lambeth',
+  'Clapham High Street':'Lambeth','Lambeth North':'Lambeth',
+  // Camden
+  'Camden Town':'Camden','Camden Road':'Camden','Chalk Farm':'Camden','Kentish Town':'Camden',
+  'Kentish Town West':'Camden','Caledonian Road':'Camden','Kings Cross St Pancras':'Camden',
+  'Euston':'Camden','Euston Square':'Camden','Russell Square':'Camden',
+  'Goodge Street':'Camden','Tottenham Court Road':'Camden','Chancery Lane':'Camden',
+  'Holborn':'Camden','Covent Garden':'Camden','Leicester Square':'Camden',
+  'Gospel Oak':'Camden','Hampstead':'Camden','Hampstead Heath':'Camden',
+  'Belsize Park':'Camden','Swiss Cottage':'Camden','Finchley Road':'Camden',
+  'Finchley Road and Frognal':'Camden','West Hampstead':'Camden','West Hampstead Thameslink':'Camden',
+  'Mornington Crescent':'Camden','St Pancras International':'Camden',
+  // Islington
+  'Angel':'Islington','Essex Road':'Islington','Highbury and Islington':'Islington',
+  'Caledonian Road and Barnsbury':'Islington','Canonbury':'Islington','Drayton Park':'Islington',
+  'Holloway Road':'Islington','Archway':'Islington','Tufnell Park':'Islington',
+  'Farringdon':'Islington','Barbican':'Islington','Old Street':'Islington','Moorgate':'Islington',
+  // Newham
+  'Stratford':'Newham','Stratford High Street':'Newham','Stratford International':'Newham',
+  'West Ham':'Newham','Canning Town':'Newham','East Ham':'Newham','Upton Park':'Newham',
+  'Woodgrange Park':'Newham','Beckton':'Newham','Beckton Park':'Newham',
+  'Royal Albert':'Newham','King George V':'Newham','Custom House':'Newham',
+  // Greenwich
+  'North Greenwich':'Greenwich','Cutty Sark':'Greenwich','Greenwich':'Greenwich',
+  'Maze Hill':'Greenwich','Westcombe Park':'Greenwich','Charlton':'Greenwich',
+  'Woolwich':'Greenwich','Woolwich Arsenal':'Greenwich','Cyprus':'Greenwich',
+  // Lewisham
+  'Lewisham':'Lewisham','Deptford':'Lewisham','Deptford Bridge':'Lewisham',
+  'New Cross':'Lewisham','New Cross Gate':'Lewisham','Brockley':'Lewisham',
+  'Crofton Park':'Lewisham','Forest Hill':'Lewisham','Sydenham':'Lewisham',
+  'Catford':'Lewisham','Catford Bridge':'Lewisham','Hither Green':'Lewisham',
+  'Elverson Road':'Lewisham','Ladywell':'Lewisham','Blackheath':'Lewisham',
+  // Haringey
+  'Arsenal':'Haringey','Finsbury Park':'Haringey','Highgate':'Haringey',
+  'Crouch Hill':'Haringey','Manor House':'Haringey','Seven Sisters':'Haringey',
+  'Tottenham Hale':'Haringey','Bruce Grove':'Haringey','Turnpike Lane':'Haringey',
+  'Wood Green':'Haringey',
+  // Waltham Forest
+  'Walthamstow Central':'Waltham Forest','Walthamstow Queens Road':'Waltham Forest',
+  'Blackhorse Road':'Waltham Forest','Leyton':'Waltham Forest','Leyton Midland Road':'Waltham Forest',
+  // Barnet
+  'East Finchley':'Barnet','Golders Green':'Barnet','Brent Cross':'Barnet','Brent Cross West':'Barnet',
+  // Ealing
+  'Acton Central':'Ealing','Acton Main Line':'Ealing','Acton Town':'Ealing','East Acton':'Ealing',
+  'West Acton':'Ealing','Ealing Broadway':'Ealing','Gunnersbury':'Ealing',
+  // Hounslow
+  'Chiswick':'Hounslow','Chiswick Park':'Hounslow','Turnham Green':'Hounslow',
+  // Merton
+  'Colliers Wood':'Merton','South Wimbledon':'Merton','Morden':'Merton','Morden Road':'Merton',
+  'Wimbledon':'Merton','Wimbledon Park':'Merton','Southfields':'Merton',
+  // Bexley
+  'Bexleyheath':'Bexley','Sidcup':'Bexley','Welling':'Bexley',
+  // Bromley
+  'Bromley':'Bromley','Beckenham':'Bromley','Crystal Palace':'Bromley',
+  // Richmond
+  'Richmond':'Richmond','East Putney':'Richmond','Putney':'Richmond',
+  'Twickenham':'Richmond','Surbiton':'Richmond',
+  // Harrow
+  'Harrow':'Harrow',
+  // Croydon
+  'Croydon':'Croydon',
+  // Kingston
+  'Kingston':'Kingston',
+  // City of London
+  'Bank':'City','Cannon Street':'City','City Thameslink':'City','Fenchurch Street':'City',
+  'Liverpool Street':'City','London Bridge':'City','Mansion House':'City',
+  'Monument':'City','Moorgate':'City','St Pauls':'City','Tower Gateway':'City','Tower Hill':'City',
+  // Brent
+  'Kilburn':'Brent','Kilburn High Road':'Brent','Kilburn Park':'Brent',
+  'Kensal Green':'Brent','Kensal Rise':'Brent','Queens Park':'Brent',
+  'Dollis Hill':'Brent','Willesden Green':'Brent','Willesden Junction':'Brent',
+  'Harlesden':'Brent','Brondesbury':'Brent','Brondesbury Park':'Brent',
+  // Kensington area
+  'Queensway':'Kensington','Bayswater':'Kensington','Ladbroke Grove':'Kensington',
+  'Warwick Avenue':'Westminster','Maida Vale':'Westminster','St Johns Wood':'Westminster',
+  'Regents Park':'Westminster',
+  // Wandsworth more
+  'East Putney':'Wandsworth','Southfields':'Wandsworth',
+};
+
+// Borough → broadband providers
+// Openreach (via BT/Sky/Vodafone etc) = universal
+// Virgin Media = widespread in most boroughs
+// Community Fibre = inner London focus
+// Hyperoptic = urban high-rise, inner London
+// G.Network = central/inner London
+var BOROUGH_BROADBAND={
+  'Wandsworth':    ['Openreach','Virgin Media','Community Fibre','Hyperoptic'],
+  'Westminster':   ['Openreach','Virgin Media','Community Fibre','Hyperoptic','G.Network'],
+  'Kensington':    ['Openreach','Virgin Media','Community Fibre','Hyperoptic','G.Network'],
+  'Hammersmith':   ['Openreach','Virgin Media','Community Fibre','Hyperoptic'],
+  'City':          ['Openreach','Virgin Media','Community Fibre','Hyperoptic','G.Network','CityFibre'],
+  'Tower Hamlets': ['Openreach','Virgin Media','Community Fibre','Hyperoptic','G.Network'],
+  'Southwark':     ['Openreach','Virgin Media','Community Fibre','Hyperoptic','G.Network'],
+  'Hackney':       ['Openreach','Virgin Media','Community Fibre','Hyperoptic'],
+  'Lambeth':       ['Openreach','Virgin Media','Community Fibre','Hyperoptic'],
+  'Camden':        ['Openreach','Virgin Media','Community Fibre','Hyperoptic','G.Network'],
+  'Islington':     ['Openreach','Virgin Media','Community Fibre','Hyperoptic'],
+  'Newham':        ['Openreach','Virgin Media','Community Fibre'],
+  'Greenwich':     ['Openreach','Virgin Media','Community Fibre'],
+  'Lewisham':      ['Openreach','Virgin Media','Community Fibre'],
+  'Haringey':      ['Openreach','Virgin Media','Community Fibre'],
+  'Waltham Forest':['Openreach','Virgin Media'],
+  'Barking':       ['Openreach','Virgin Media'],
+  'Redbridge':     ['Openreach','Virgin Media'],
+  'Enfield':       ['Openreach','Virgin Media'],
+  'Barnet':        ['Openreach','Virgin Media','Community Fibre'],
+  'Ealing':        ['Openreach','Virgin Media'],
+  'Hounslow':      ['Openreach','Virgin Media'],
+  'Merton':        ['Openreach','Virgin Media'],
+  'Bexley':        ['Openreach','Virgin Media'],
+  'Bromley':       ['Openreach','Virgin Media'],
+  'Hillingdon':    ['Openreach','Virgin Media'],
+  'Havering':      ['Openreach','Virgin Media'],
+  'Sutton':        ['Openreach','Virgin Media'],
+  'Richmond':      ['Openreach','Virgin Media','Hyperoptic'],
+  'Harrow':        ['Openreach','Virgin Media'],
+  'Croydon':       ['Openreach','Virgin Media','Community Fibre'],
+  'Kingston':      ['Openreach','Virgin Media'],
+  'Brent':         ['Openreach','Virgin Media','Community Fibre','Hyperoptic'],
+};
+
+function renderBills(areaName){
+  var boroughKey=AREA_BOROUGH[areaName];
+  var bd=boroughKey?BOROUGH_DATA[boroughKey]:null;
+  var bb=boroughKey?BOROUGH_BROADBAND[boroughKey]:null;
+
+  if(!bd){
+    document.getElementById('ai-bills').innerHTML=
+      '<div style="font-size:11px;color:#9ca3af;margin-bottom:8px">Borough data not available for this area.</div>'+
+      '<div id="ai-ev"><div class="lifestyle-loading">&#9679;&#9679;&#9679; Checking EV chargers...</div></div>';
+    return;
+  }
+
+  var rankClass=bd.rank<=8?'rank-good':bd.rank<=20?'rank-mid':'rank-bad';
+  var rankLabel='#'+bd.rank+' of '+bd.rankOf+' (cheapest=best)';
+
+  var bbHtml='';
+  if(bb){
+    bbHtml=bb.map(function(p){
+      var isFF=(p==='Community Fibre'||p==='Hyperoptic'||p==='G.Network'||p==='CityFibre');
+      return '<span class="bb-pill'+(isFF?' full-fibre':'')+'">'+(isFF?'⚡ ':'')+p+'</span>';
+    }).join('');
+  }
+
+  document.getElementById('ai-bills').innerHTML=
+    '<div class="bills-card">'+
+      '<div class="bills-card-title">🏛 Council Tax (2024/25)</div>'+
+      '<div class="bills-row">'+
+        '<span class="bills-label">Authority</span>'+
+        '<span class="bills-value">'+bd.borough+'</span>'+
+      '</div>'+
+      '<div class="bills-row">'+
+        '<span class="bills-label">London ranking</span>'+
+        '<span class="bills-value"><span class="bills-rank '+rankClass+'">'+rankLabel+'</span></span>'+
+      '</div>'+
+      '<div style="font-size:10px;color:#9ca3af;margin-top:6px">Source: MHCLG Council Tax levels, England 2024/25</div>'+
+    '</div>'+
+    '<div class="bills-card">'+
+      '<div class="bills-card-title">📶 Broadband Providers</div>'+
+      '<div style="margin-top:4px">'+bbHtml+'</div>'+
+      '<div style="font-size:10px;color:#9ca3af;margin-top:6px">⚡ = full fibre altnet · Availability varies by street/building</div>'+
+    '</div>'+
+    '<div id="ai-ev"><div class="lifestyle-loading">&#9679;&#9679;&#9679; Checking EV chargers...</div></div>';
+}
+
 var AGENTS={
   "Shoreditch":[{n:"Foxtons Shoreditch",u:"https://www.foxtons.co.uk/offices/shoreditch"},{n:"Savills Shoreditch",u:"https://www.savills.co.uk/offices/shoreditch"},{n:"Stirling Ackroyd Shoreditch",u:"https://www.stirlingackroyd.com/offices/shoreditch"}],
   "Hackney":[{n:"Foxtons Hackney",u:"https://www.foxtons.co.uk/offices/hackney"},{n:"Winkworth Hackney",u:"https://www.winkworth.co.uk/offices/hackney"},{n:"Stirling Ackroyd Hackney",u:"https://www.stirlingackroyd.com/offices/hackney"}],
@@ -1068,11 +1324,20 @@ async function loadLayer(name, silent){
         300);
     }
     else if(name==='pubs'){
+      if(map.getZoom()<13){
+        document.getElementById('layer-loading').style.display='none';
+        layers.pubs.clearLayers();
+        var msg=L.marker(map.getCenter(),{icon:L.divIcon({html:'<div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;padding:6px 10px;font-size:11px;color:#6b7280;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.1)">Zoom in to see pubs</div>',className:'',iconAnchor:[80,0]})});
+        msg.addTo(layers.pubs);
+        layers.pubs.addTo(map);
+        layerLoaded.pubs=false; // reload when zoomed in
+        return;
+      }
       await loadOverpassClustered(name,
-        'node["amenity"="pub"]'+bbox+';',
+        'node["amenity"="pub"]["name"]'+bbox+';',
         '#f59e0b','🍺',
         function(el){ return '<b>'+(el.tags.name||'Pub')+'</b>'+(el.tags.real_ale==='yes'?'<br><span style="font-size:11px;color:#d97706">Real ale ✓</span>':''); },
-        500);
+        80);
     }
     else if(name==='cycles') await loadCycleRoutes(bbox);
     else if(name==='flights'){ loadFlightPaths(); }
@@ -1121,7 +1386,6 @@ async function loadOverpassClustered(name, query, color, emoji, popupFn, cap){
 
 async function loadCycleRoutes(bbox){
   var url='https://overpass-api.de/api/interpreter';
-  // Query for dedicated cycle ways, paths and lanes
   var body='[out:json][timeout:25][maxsize:2000000];('+
     'way["highway"="cycleway"]'+bbox+';'+
     'way["bicycle"="designated"]'+bbox+';'+
@@ -1142,8 +1406,7 @@ async function loadCycleRoutes(bbox){
       .bindPopup('<b>🚲 '+type+'</b>'+(el.tags.name?'<br>'+el.tags.name:'')+(el.tags.surface?'<br><span style="font-size:11px;color:#6b7280">Surface: '+el.tags.surface+'</span>':''))
       .addTo(layers.cycles);
   });
-  // Ensure layer is on the map
-  if(layerState.cycles) layers.cycles.addTo(map);
+  layers.cycles.addTo(map);
 }
 
 function loadFlightPaths(){
@@ -1191,20 +1454,24 @@ async function loadFloodZones(){
 async function loadParks(bbox){
   var url='https://overpass-api.de/api/interpreter';
   var zoom=map.getZoom();
-  // At low zoom only show named parks; at high zoom show all green spaces
+  // Ways only (relations don't carry geometry in out geom for relations)
   var query=zoom<13
-    ? 'way["leisure"="park"]["name"]'+bbox+';relation["leisure"="park"]["name"]'+bbox+';'
-    : 'way["leisure"="park"]'+bbox+';way["landuse"="grass"]["name"]'+bbox+';';
-  var body='[out:json][timeout:20][maxsize:1500000];('+query+');out geom 100;';
+    ? 'way["leisure"="park"]["name"]'+bbox+';'
+    : 'way["leisure"="park"]'+bbox+';way["landuse"="grass"]["name"]'+bbox+';way["leisure"="nature_reserve"]["name"]'+bbox+';';
+  var body='[out:json][timeout:25][maxsize:2000000];('+query+');out geom 150;';
   var resp=await fetch(url,{method:'POST',body:body});
   var data=await resp.json();
+  var count=0;
   data.elements.forEach(function(el){
+    if(count>=150) return;
     if(!el.geometry||!el.geometry.length) return;
     var latlngs=el.geometry.map(function(p){return[p.lat,p.lon];});
-    L.polygon(latlngs,{color:'#16a34a',fillColor:'#86efac',weight:1,fillOpacity:0.35})
+    L.polygon(latlngs,{color:'#16a34a',fillColor:'#86efac',weight:1.5,fillOpacity:0.4})
       .bindPopup('<b>🌳 '+(el.tags.name||'Green Space')+'</b>')
       .addTo(layers.parks);
+    count++;
   });
+  layers.parks.addTo(map);
 }
 
 // ── Nearest Third Space calc ──
@@ -1418,6 +1685,8 @@ function openAreaInfo(area,t1,t2,both){
   document.getElementById('harriet-comment').disabled=isGuest;
   document.getElementById('nick-comment').style.opacity=isGuest?'0.5':'1';
   document.getElementById('harriet-comment').style.opacity=isGuest?'0.5':'1';
+  // Household bills (council tax + broadband) — synchronous data lookup
+  renderBills(area.name);
   // AI lifestyle data
   document.getElementById('ai-lifestyle-content').innerHTML='<div class="lifestyle-loading">&#9679;&#9679;&#9679; Asking Claude about '+area.name+'...</div>';
   document.getElementById('ai-parks').innerHTML='';
@@ -1428,6 +1697,7 @@ function openAreaInfo(area,t1,t2,both){
   fetchDateNight(area.name);
   fetchCrime(area.name);
   fetchNoise(area.name);
+  fetchEV(area.lat, area.lng);
 }
 
 // ── Score buttons ──
@@ -1737,6 +2007,75 @@ async function fetchNoise(areaName){
       '</div>';
   }catch(e){
     document.getElementById('ai-noise-content').innerHTML='<div class="lifestyle-loading" style="color:#f43f8e">Could not load data</div>';
+  }
+}
+
+// ── EV Charger count via Overpass (1 mile radius, Type 2 breakdown) ──
+async function fetchEV(lat, lng){
+  try{
+    var url='https://overpass-api.de/api/interpreter';
+    // around:1609 = 1 mile in metres
+    var body='[out:json][timeout:15];node["amenity"="charging_station"](around:1609,'+lat+','+lng+');out body;';
+    var resp=await fetch(url,{method:'POST',body:body});
+    var data=await resp.json();
+
+    var bands={u5:0,u10:0,u30:0,u50:0};
+    var total=0;
+
+    data.elements.forEach(function(el){
+      var tags=el.tags||{};
+      // Check for Type 2 socket
+      var hasType2=false;
+      var socketFields=['socket:type2','socket:type2_combo','socket:iec_62196_t2','socket:iec_62196_t2_combo'];
+      socketFields.forEach(function(f){ if(tags[f] && tags[f]!=='no') hasType2=true; });
+      // If no socket info at all, count it (many stations omit socket tags)
+      var noSocketInfo=!Object.keys(tags).some(function(k){ return k.startsWith('socket:'); });
+      if(!hasType2 && !noSocketInfo) return;
+
+      // Get power — try various OSM tags
+      var kw=0;
+      if(tags['socket:type2:output']) kw=parseFloat(tags['socket:type2:output']);
+      else if(tags.maxpower) kw=parseFloat(tags.maxpower)/1000;
+      else if(tags.capacity) kw=7.4; // assume standard 7.4kW if no power info
+
+      // Count sockets (default 1)
+      var count=parseInt(tags['socket:type2']||tags.capacity||1)||1;
+      if(count>10) count=1; // sanity cap
+
+      for(var i=0;i<count;i++){
+        if(kw>0 && kw>=50) continue; // exclude 50kW+
+        total++;
+        if(kw<5) bands.u5++;
+        else if(kw<10) bands.u10++;
+        else if(kw<30) bands.u30++;
+        else bands.u50++;
+      }
+    });
+
+    var quality=total>=20?'#16a34a':total>=8?'#d97706':'#9ca3af';
+    var label=total>=20?'Great EV coverage':total>=8?'Decent EV coverage':'Limited EV coverage';
+
+    var breakdown='';
+    if(bands.u5>0)  breakdown+='<div class="ev-row"><span class="ev-band">&lt;5 kW</span><span class="ev-count">'+bands.u5+'</span></div>';
+    if(bands.u10>0) breakdown+='<div class="ev-row"><span class="ev-band">&lt;10 kW</span><span class="ev-count">'+bands.u10+'</span></div>';
+    if(bands.u30>0) breakdown+='<div class="ev-row"><span class="ev-band">&lt;30 kW</span><span class="ev-count">'+bands.u30+'</span></div>';
+    if(bands.u50>0) breakdown+='<div class="ev-row"><span class="ev-band">&lt;50 kW</span><span class="ev-count">'+bands.u50+'</span></div>';
+    if(!breakdown && total>0) breakdown='<div style="font-size:11px;color:#6b7280;margin-top:4px">'+total+' station'+(total===1?'':'s')+' found (power data unavailable)</div>';
+    if(!breakdown)  breakdown='<div style="font-size:11px;color:#9ca3af;margin-top:4px">No Type 2 chargers found nearby</div>';
+
+    document.getElementById('ai-ev').innerHTML=
+      '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;margin-top:8px">'+
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+          '<span style="font-size:18px">⚡</span>'+
+          '<div>'+
+            '<div style="font-size:13px;font-weight:700;color:'+quality+'">'+total+' EV charger'+(total===1?'':'s')+' within 1 mile</div>'+
+            '<div style="font-size:11px;color:#6b7280">'+label+' · OpenStreetMap</div>'+
+          '</div>'+
+        '</div>'+
+        breakdown+
+      '</div>';
+  }catch(e){
+    document.getElementById('ai-ev').innerHTML='<div style="font-size:11px;color:#9ca3af;padding:4px 0">⚡ EV data unavailable</div>';
   }
 }
 </script>
