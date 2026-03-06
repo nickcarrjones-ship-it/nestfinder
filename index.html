@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Harriet & Nick's House Hunt</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -147,6 +149,30 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
 .areas-table .area-name-cell { font-weight: 700; color: #1f2937; font-size: 12px; }
 .areas-table .both-badge { display: inline-block; background: #f0fdf4; border: 1px solid #84cc16; color: #16a34a; border-radius: 10px; padding: 1px 6px; font-size: 9px; font-weight: 700; margin-left: 3px; }
 .table-count { font-size: 11px; color: #9ca3af; padding: 8px 12px 4px; }
+/* Veto toggle header */
+.table-header-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #f1f5f9; gap: 8px; }
+.table-filter-label { font-size: 11px; font-weight: 600; color: #6b7280; }
+.veto-btn { border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 700; cursor: pointer; font-family: inherit; touch-action: manipulation; transition: all 0.15s; }
+.veto-btn.hiding { background: #fee2e2; color: #b91c1c; }
+.veto-btn.showing { background: #f3f4f6; color: #6b7280; }
+/* Veto checkbox cell */
+.veto-cell { text-align: center; }
+.veto-check { width: 18px; height: 18px; cursor: pointer; accent-color: #dc2626; }
+.veto-row td { opacity: 0.45; }
+.veto-row .veto-cell { opacity: 1; }
+.veto-row .area-name-cell { text-decoration: line-through; color: #9ca3af; }
+/* Floating layer panel */
+#layer-panel { position: absolute; bottom: 48px; right: 10px; z-index: 1000; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.18); width: 180px; overflow: hidden; }
+#layer-panel-header { background: #1a1f36; color: #a3e635; padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+#layer-panel-body { padding: 4px 0; }
+.layer-row { display: flex; align-items: center; gap: 8px; padding: 7px 12px; cursor: pointer; transition: background 0.1s; font-size: 12px; }
+.layer-row:hover { background: #f8fafc; }
+.layer-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.layer-name { flex: 1; color: #374151; font-weight: 500; }
+.layer-toggle { width: 28px; height: 16px; border-radius: 16px; background: #e5e7eb; position: relative; flex-shrink: 0; transition: background 0.2s; }
+.layer-toggle::after { content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.layer-toggle.on { background: #a3e635; }
+.layer-toggle.on::after { transform: translateX(12px); }
 </style>
 </head>
 <body>
@@ -303,7 +329,10 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
 
     <!-- TABLE TAB -->
     <div class="tab-content" id="content-table">
-      <div class="table-count" id="table-count"></div>
+      <div class="table-header-bar">
+        <div class="table-filter-label" id="table-count">Run a search to see areas</div>
+        <button class="veto-btn hiding" id="veto-toggle-btn" onclick="toggleVetoFilter()">🚫 Hiding vetoed</button>
+      </div>
       <div class="areas-table-wrap">
         <div id="areas-table-inner"><div class="areas-table-empty">Run a search first to see all green areas in a table.</div></div>
       </div>
@@ -320,6 +349,51 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
 
   <button class="toggle-btn" id="toggle-btn" onclick="toggleSidebar()">&#8249;</button>
   <div id="map"></div>
+  <!-- Floating layer control panel -->
+  <div id="layer-panel">
+    <div id="layer-panel-header" onclick="toggleLayerPanel()">
+      <span>&#9881; Layers</span>
+      <span id="layer-panel-arrow">&#9660;</span>
+    </div>
+    <div id="layer-panel-body">
+      <div class="layer-row" onclick="toggleLayer('schools')">
+        <span class="layer-icon">&#127979;</span>
+        <span class="layer-name">Schools</span>
+        <span class="layer-toggle" id="lt-schools"></span>
+      </div>
+      <div class="layer-row" onclick="toggleLayer('gps')">
+        <span class="layer-icon">&#127973;</span>
+        <span class="layer-name">GP Surgeries</span>
+        <span class="layer-toggle" id="lt-gps"></span>
+      </div>
+      <div class="layer-row" onclick="toggleLayer('pubs')">
+        <span class="layer-icon">&#127867;</span>
+        <span class="layer-name">Pubs</span>
+        <span class="layer-toggle" id="lt-pubs"></span>
+      </div>
+      <div class="layer-row" onclick="toggleLayer('cycles')">
+        <span class="layer-icon">&#128690;</span>
+        <span class="layer-name">Cycle Routes</span>
+        <span class="layer-toggle" id="lt-cycles"></span>
+      </div>
+      <div class="layer-row" onclick="toggleLayer('flights')">
+        <span class="layer-icon">&#9992;</span>
+        <span class="layer-name">Flight Paths</span>
+        <span class="layer-toggle" id="lt-flights"></span>
+      </div>
+      <div class="layer-row" onclick="toggleLayer('flood')">
+        <span class="layer-icon">&#127754;</span>
+        <span class="layer-name">Flood Zones</span>
+        <span class="layer-toggle" id="lt-flood"></span>
+      </div>
+      <div class="layer-row" onclick="toggleLayer('parks')">
+        <span class="layer-icon">&#127807;</span>
+        <span class="layer-name">Green Spaces</span>
+        <span class="layer-toggle" id="lt-parks"></span>
+      </div>
+      <div id="layer-loading" style="display:none;font-size:10px;color:#9ca3af;padding:4px 2px;text-align:center">Loading...</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -331,23 +405,44 @@ var zoomCircles=[];
 var currentUser=null;
 var db=null;
 var ratingsCache={};
+// Veto state: set of area names vetoed, persisted to Firebase/localStorage
+var vetoedAreas={};
+var hideVetoed=true; // default: hide vetoed areas
 
 // ── Firebase init ──
 var firebaseConfig={
-  apiKey:"AIzaSyDemo-ReplaceWithYourActualFirebaseKey",
-  authDomain:"nestfinder-househunt.firebaseapp.com",
-  databaseURL:"https://nestfinder-househunt-default-rtdb.firebaseio.com",
-  projectId:"nestfinder-househunt"
+  apiKey:"AIzaSyCrkvPf_bIBzkhQDsWDuoUnnw2FsVR0Ma0",
+  authDomain:"nestfinder-54d8f.firebaseapp.com",
+  databaseURL:"https://nestfinder-54d8f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"nestfinder-54d8f",
+  storageBucket:"nestfinder-54d8f.firebasestorage.app",
+  messagingSenderId:"469569590221",
+  appId:"1:469569590221:web:04599cb8ce1a5a10bfea84"
 };
 try{
   firebase.initializeApp(firebaseConfig);
   db=firebase.database();
   // Listen for all ratings changes in real time
+  var fbRedrawDebounce=null;
   db.ref('ratings').on('value',function(snap){
     ratingsCache=snap.val()||{};
-    renderResults();
+    clearTimeout(fbRedrawDebounce);
+    fbRedrawDebounce=setTimeout(function(){
+      rebuildTop5();
+      renderResults();
+      if(document.getElementById('results-section').style.display!=='none') computeZones();
+    },300);
+  });
+  // Listen for veto changes in real time
+  db.ref('vetoes').on('value',function(snap){
+    vetoedAreas=snap.val()||{};
+    renderTable();
   });
 }catch(e){ console.warn('Firebase not configured, using localStorage fallback'); }
+// Load hideVetoed preference from localStorage (per-device preference)
+try{ hideVetoed = localStorage.getItem('hideVetoed')!=='false'; }catch(e){}
+// Load vetoes from localStorage if no Firebase
+try{ if(!db){ vetoedAreas=JSON.parse(localStorage.getItem('vetoes')||'{}'); } }catch(e){}
 
 // ── User login ──
 function showLogin(){
@@ -361,7 +456,7 @@ function setUser(name){
   ind.innerHTML='<span class="sync-dot'+(db?' connected':'')+'"></span>'+(name==='nick'?'Nick':'Harriet');
 }
 // Show login on load
-window.addEventListener('load',function(){ showLogin(); });
+window.addEventListener('load',function(){ rebuildTop5(); showLogin(); });
 
 // ── Third Space locations (verified March 2026) ──
 var THIRD_SPACE=[
@@ -743,9 +838,23 @@ var AGENTS={
 // ── Map init ──
 var map=L.map('map',{center:[51.505,-0.06],zoom:11,zoomControl:false});
 L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
 var renderer=L.svg({padding:0.5});
-var layers={commute:L.layerGroup().addTo(map),markers:L.layerGroup().addTo(map),thirdspace:L.layerGroup().addTo(map)};
+var layers={
+  commute:L.layerGroup().addTo(map),
+  markers:L.layerGroup().addTo(map),
+  thirdspace:L.layerGroup().addTo(map),
+  schools:L.layerGroup(),
+  gps:L.layerGroup(),
+  pubs:L.layerGroup(),
+  cycles:L.layerGroup(),
+  flights:L.layerGroup(),
+  flood:L.layerGroup(),
+  parks:L.layerGroup()
+};
+var layerState={schools:false,gps:false,pubs:false,cycles:false,flights:false,flood:false,parks:false};
+var layerLoaded={schools:false,gps:false,pubs:false,cycles:false,flights:false,flood:false,parks:false};
+var layerPanelOpen=true;
 
 // ── Plot Third Space markers ──
 THIRD_SPACE.forEach(function(ts){
@@ -754,6 +863,206 @@ THIRD_SPACE.forEach(function(ts){
     .bindPopup('<b style="font-size:13px">'+ts.name+'</b><br><span style="font-size:11px;color:#6b7280">'+ts.addr+'</span>')
     .addTo(layers.thirdspace);
 });
+
+// ── Layer panel ──
+function toggleLayerPanel(){
+  layerPanelOpen=!layerPanelOpen;
+  document.getElementById('layer-panel-body').style.display=layerPanelOpen?'block':'none';
+  document.getElementById('layer-panel-arrow').innerHTML=layerPanelOpen?'&#9660;':'&#9650;';
+}
+
+function toggleLayer(name){
+  layerState[name]=!layerState[name];
+  document.getElementById('lt-'+name).className='layer-toggle'+(layerState[name]?' on':'');
+  if(layerState[name]){
+    if(!layerLoaded[name]){ loadLayer(name); }
+    else { layers[name].addTo(map); }
+  } else {
+    map.removeLayer(layers[name]);
+  }
+}
+
+function setLoading(on){
+  document.getElementById('layer-loading').style.display=on?'block':'none';
+}
+
+// ── Get current viewport bounds with padding ──
+function getViewBounds(pad){
+  pad=pad||0.05;
+  var b=map.getBounds();
+  return [
+    (b.getSouth()-pad).toFixed(4),
+    (b.getWest()-pad).toFixed(4),
+    (b.getNorth()+pad).toFixed(4),
+    (b.getEast()+pad).toFixed(4)
+  ];
+}
+
+// ── Re-load viewport layers on map moveend (debounced 600ms) ──
+var moveDebounce=null;
+map.on('moveend',function(){
+  clearTimeout(moveDebounce);
+  moveDebounce=setTimeout(function(){
+    ['schools','gps','pubs','parks'].forEach(function(name){
+      if(layerState[name]){ reloadViewportLayer(name); }
+    });
+  },600);
+});
+
+async function reloadViewportLayer(name){
+  layers[name].clearLayers();
+  await loadLayer(name,true);
+}
+
+async function loadLayer(name, silent){
+  if(!silent) setLoading(true);
+  try{
+    var bb=getViewBounds(0.04);
+    var bbox='('+bb[0]+','+bb[1]+','+bb[2]+','+bb[3]+')';
+
+    if(name==='schools'){
+      await loadOverpassClustered(name,
+        'node["amenity"="school"]'+bbox+';way["amenity"="school"]'+bbox+';',
+        '#6366f1','🏫',
+        function(el){ 
+          var grade=el.tags['ofsted:grade']||el.tags.ofsted||'';
+          var gc=grade==='1'?'#16a34a':grade==='2'?'#84cc16':grade==='3'?'#d97706':grade==='4'?'#dc2626':'#6366f1';
+          return '<b>'+(el.tags.name||'School')+'</b>'+(grade?'<br><span style="color:'+gc+';font-size:11px;font-weight:600">Ofsted Grade '+grade+'</span>':'')+'<br><span style="font-size:11px;color:#6b7280">'+(el.tags['addr:street']||'')+'</span>';
+        },500);
+    }
+    else if(name==='gps'){
+      await loadOverpassClustered(name,
+        'node["amenity"="doctors"]'+bbox+';way["amenity"="doctors"]'+bbox+';',
+        '#10b981','🏥',
+        function(el){ return '<b>'+(el.tags.name||'GP Surgery')+'</b><br><span style="font-size:11px;color:#6b7280">'+(el.tags['addr:street']||'NHS GP')+'</span>'; },
+        300);
+    }
+    else if(name==='pubs'){
+      await loadOverpassClustered(name,
+        'node["amenity"="pub"]'+bbox+';',
+        '#f59e0b','🍺',
+        function(el){ return '<b>'+(el.tags.name||'Pub')+'</b>'+(el.tags.real_ale==='yes'?'<br><span style="font-size:11px;color:#d97706">Real ale ✓</span>':''); },
+        500);
+    }
+    else if(name==='cycles') await loadCycleRoutes(bbox);
+    else if(name==='flights'){ loadFlightPaths(); }
+    else if(name==='flood') await loadFloodZones();
+    else if(name==='parks') await loadParks(bbox);
+
+  }catch(e){ console.warn('Layer load failed:',name,e); }
+  if(!silent) setLoading(false);
+  layerLoaded[name]=true;
+  if(layerState[name]) layers[name].addTo(map);
+}
+
+// ── Clustered Overpass loader with cap ──
+async function loadOverpassClustered(name, query, color, emoji, popupFn, cap){
+  var url='https://overpass-api.de/api/interpreter';
+  var body='[out:json][timeout:20][maxsize:1000000];('+query+');out center '+(cap||300)+';';
+  var resp=await fetch(url,{method:'POST',body:body});
+  var data=await resp.json();
+
+  // Use marker clustering
+  var cluster=L.markerClusterGroup({
+    maxClusterRadius:50,
+    spiderfyOnMaxZoom:true,
+    showCoverageOnHover:false,
+    iconCreateFunction:function(c){
+      return L.divIcon({
+        html:'<div style="background:'+color+';color:#fff;border:2px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3)">'+c.getChildCount()+'</div>',
+        className:'',iconSize:[28,28],iconAnchor:[14,14]
+      });
+    }
+  });
+
+  data.elements.forEach(function(el){
+    var lat=el.lat||(el.center&&el.center.lat);
+    var lng=el.lon||(el.center&&el.center.lon);
+    if(!lat||!lng) return;
+    var icon=L.divIcon({
+      html:'<div style="background:'+color+';color:#fff;border:2px solid #fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 1px 4px rgba(0,0,0,0.3)">'+emoji+'</div>',
+      className:'',iconSize:[20,20],iconAnchor:[10,10]
+    });
+    cluster.addLayer(L.marker([lat,lng],{icon:icon}).bindPopup(popupFn(el)));
+  });
+
+  layers[name].addLayer(cluster);
+}
+
+async function loadCycleRoutes(bbox){
+  var url='https://overpass-api.de/api/interpreter';
+  var body='[out:json][timeout:20][maxsize:2000000];(way["bicycle"="designated"]'+bbox+';way["cycleway"~"."]'+bbox+';);out geom 200;';
+  var resp=await fetch(url,{method:'POST',body:body});
+  var data=await resp.json();
+  data.elements.forEach(function(el){
+    if(!el.geometry||!el.geometry.length) return;
+    var latlngs=el.geometry.map(function(p){return[p.lat,p.lon];});
+    L.polyline(latlngs,{color:'#06b6d4',weight:2.5,opacity:0.75})
+      .bindPopup('<b>🚲 Cycle Route</b>'+(el.tags.name?'<br>'+el.tags.name:'')+'<br><span style="font-size:11px;color:#6b7280">'+(el.tags.surface||'designated')+'</span>')
+      .addTo(layers.cycles);
+  });
+}
+
+function loadFlightPaths(){
+  // Hardcoded — no API needed, always fast
+  var paths=[
+    {name:'Heathrow westerly approach',color:'#8b5cf6',coords:[[51.477,-0.461],[51.488,-0.35],[51.499,-0.24],[51.505,-0.13],[51.505,-0.02]]},
+    {name:'Heathrow easterly departure',color:'#8b5cf6',coords:[[51.477,-0.461],[51.468,-0.35],[51.458,-0.22],[51.453,-0.1]]},
+    {name:'London City approach',color:'#ec4899',coords:[[51.505,0.32],[51.505,0.2],[51.504,0.085],[51.505,0.055]]},
+    {name:'Gatwick northerly approach',color:'#f97316',coords:[[51.148,-0.19],[51.25,-0.13],[51.36,-0.09],[51.46,-0.07],[51.52,-0.055]]}
+  ];
+  paths.forEach(function(p){
+    L.polyline(p.coords,{color:p.color,weight:3,opacity:0.55,dashArray:'8 6'})
+      .bindPopup('<b>✈ '+p.name+'</b><br><span style="font-size:11px;color:#6b7280">Approximate flight corridor</span>')
+      .addTo(layers.flights);
+    var mid=p.coords[Math.floor(p.coords.length/2)];
+    var icon=L.divIcon({html:'<div style="color:'+p.color+';font-size:16px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">✈</div>',className:'',iconSize:[16,16],iconAnchor:[8,8]});
+    L.marker(mid,{icon:icon,interactive:false}).addTo(layers.flights);
+  });
+  layerLoaded.flights=true;
+}
+
+async function loadFloodZones(){
+  // Thames flood plain hardcoded + OSM query capped
+  var thamesCoords=[[51.508,0.02],[51.505,0.01],[51.502,-0.01],[51.499,-0.03],[51.497,-0.05],[51.496,-0.07],[51.497,-0.09],[51.499,-0.11],[51.498,-0.13],[51.496,-0.15],[51.495,-0.18]];
+  L.polyline(thamesCoords,{color:'#3b82f6',weight:8,opacity:0.3})
+    .bindPopup('<b>🌊 Thames Flood Plain</b><br><span style="font-size:11px;color:#3b82f6">Zone 2/3 flood risk — verify with Environment Agency</span>')
+    .addTo(layers.flood);
+  try{
+    var bb=getViewBounds(0.1);
+    var bbox='('+bb[0]+','+bb[1]+','+bb[2]+','+bb[3]+')';
+    var url='https://overpass-api.de/api/interpreter';
+    var body='[out:json][timeout:20];(way["flood_prone"="yes"]'+bbox+';way["natural"="floodplain"]'+bbox+';);out geom 50;';
+    var resp=await fetch(url,{method:'POST',body:body});
+    var data=await resp.json();
+    data.elements.forEach(function(el){
+      if(!el.geometry||!el.geometry.length) return;
+      var latlngs=el.geometry.map(function(p){return[p.lat,p.lon];});
+      L.polygon(latlngs,{color:'#3b82f6',fillColor:'#93c5fd',weight:1,fillOpacity:0.25})
+        .bindPopup('<b>🌊 Flood Risk Zone</b><br><span style="font-size:11px;color:#3b82f6">Verify with Environment Agency</span>')
+        .addTo(layers.flood);
+    });
+  }catch(e){}
+}
+
+async function loadParks(bbox){
+  var url='https://overpass-api.de/api/interpreter';
+  var zoom=map.getZoom();
+  // At low zoom only show named parks; at high zoom show all green spaces
+  var query=zoom<13
+    ? 'way["leisure"="park"]["name"]'+bbox+';relation["leisure"="park"]["name"]'+bbox+';'
+    : 'way["leisure"="park"]'+bbox+';way["landuse"="grass"]["name"]'+bbox+';';
+  var body='[out:json][timeout:20][maxsize:1500000];('+query+');out geom 100;';
+  var resp=await fetch(url,{method:'POST',body:body});
+  var data=await resp.json();
+  data.elements.forEach(function(el){
+    if(!el.geometry||!el.geometry.length) return;
+    var latlngs=el.geometry.map(function(p){return[p.lat,p.lon];});
+    L.polygon(latlngs,{color:'#16a34a',fillColor:'#86efac',weight:1,fillOpacity:0.35})
+      .bindPopup('<b>🌳 '+(el.tags.name||'Green Space')+'</b>')
+      .addTo(layers.parks);
+  });
+}
 
 // ── Nearest Third Space calc ──
 function haversine(lat1,lon1,lat2,lon2){
@@ -799,6 +1108,20 @@ function updateCircleRadii(){
 }
 map.on('zoomend',updateCircleRadii);
 
+// ── Top-5 cache — rebuilt only when ratings change ──
+var top5Cache={};
+function rebuildTop5(){
+  var allRated=[];
+  AREAS.forEach(function(a){
+    var saved=getSaved(a.name);
+    var total=(saved.nickScore||0)+(saved.harrietScore||0);
+    if(total>0) allRated.push({name:a.name,total:total});
+  });
+  allRated.sort(function(a,b){return b.total-a.total;});
+  top5Cache={};
+  allRated.slice(0,5).forEach(function(r,i){ top5Cache[r.name]={rank:i+1,total:r.total}; });
+}
+
 // ── Compute zones ──
 function computeZones(){
   var p1Max=parseInt(document.getElementById('p1-max').value);
@@ -811,22 +1134,12 @@ function computeZones(){
   greenAreas=[];
   document.getElementById('results-section').style.display='none';
 
-  var journeyTimes={};
-
-  // Use pre-computed journey times — instant
-  AREAS.forEach(function(area){
-    var jt=JOURNEY_TIMES[area.name];
-    if(jt){
-      journeyTimes[area.name]={cw:jt.cw,hol:jt.hol};
-    }
-  });
-
   var tsFilterOn=document.getElementById('ts-filter').checked;
   var ideal=0,reach=0;
   var r=getRadiusForZoom(map.getZoom());
 
   AREAS.forEach(function(area){
-    var jt=journeyTimes[area.name]; if(!jt)return;
+    var jt=JOURNEY_TIMES[area.name]; if(!jt)return;
 
     var t1=jt.cw + p1Walk, t2=jt.hol + p2Walk;
     var inP1=t1<=p1Max;
@@ -838,20 +1151,35 @@ function computeZones(){
       var ts=nearestTS(area.lat,area.lng);
       if(ts.miles>1)return;
     }
+    // Veto filter
+    if(hideVetoed && isVetoed(area.name)) return;
     var both=inP1&&inP2;
     if(both){ideal++; greenAreas.push({area:area,t1:t1,t2:t2,both:both});} reach++;
-    var color=both?'#84cc16':inP1?'#38bdf8':'#f43f8e';
+
+    var ranked=top5Cache[area.name];
+    var rank=ranked?ranked.rank:null;
+    var isTop=rank&&both;
+    var color=isTop?'#f59e0b':both?'#84cc16':inP1?'#38bdf8':'#f43f8e';
+    var borderColor=isTop?'#d97706':both?'#65a30d':'transparent';
     var circle=L.circle([area.lat,area.lng],{
       renderer:renderer,radius:r,
-      fillColor:color,color:both?'#65a30d':'transparent',
-      weight:both?1.5:0,fillOpacity:both?0.45:0.32
+      fillColor:color,color:(both||isTop)?borderColor:'transparent',
+      weight:(both||isTop)?2:0,fillOpacity:isTop?0.75:both?0.45:0.32
     }).bindPopup(
-      '<b style="color:'+(both?'#16a34a':color)+'">'+(both?'&#9733; ':'')+area.name+'</b>'+
-      '<div style="font-size:11px;color:#6b7280;margin:2px 0 6px">'+(both?'Ideal for both':'Reachable by one')+'</div>'+
+      '<b style="color:'+(isTop?'#d97706':both?'#16a34a':color)+'">'+(isTop?(rank===1?'👑':'🥇🥈🥉🏅🏅'.split('')[rank-1]+' '):'')+(both&&!isTop?'&#9733; ':'')+area.name+'</b>'+
+      (isTop?'<div style="font-size:11px;color:#d97706;font-weight:700;margin:1px 0 5px">Rank #'+rank+' — Combined score '+(ranked.total)+'/20</div>':'<div style="font-size:11px;color:#6b7280;margin:2px 0 6px">'+(both?'Ideal for both':'Reachable by one')+'</div>')+
       '<div style="font-size:12px;margin-bottom:2px">&#128309; Nick: <b>'+t1+' min total</b> ('+jt.cw+'+'+p1Walk+' walk)</div>'+
       '<div style="font-size:12px">&#129145; Harriet: <b>'+t2+' min total</b> ('+jt.hol+'+'+p2Walk+' walk)</div>'
     ).addTo(layers.commute);
     circle.on('click',function(){openAreaInfo(area,t1,t2,both);});
+    if(isTop){
+      var label=rank===1?'👑':(rank+'');
+      var rankIcon=L.divIcon({
+        html:'<div style="background:#d97706;color:#fff;border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:'+(rank===1?'12':'11')+'px;font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,0.4);pointer-events:none">'+label+'</div>',
+        className:'',iconSize:[22,22],iconAnchor:[11,11]
+      });
+      L.marker([area.lat,area.lng],{icon:rankIcon,interactive:false}).addTo(layers.commute);
+    }
     zoomCircles.push(circle);
   });
 
@@ -973,6 +1301,8 @@ function saveRatings(){
   } else {
     try{localStorage.setItem('area_'+currentArea,JSON.stringify(data));}catch(e){}
   }
+  // Refresh map so top-5 gold bubbles update immediately
+  if(document.getElementById('results-section').style.display!=='none'){ rebuildTop5(); computeZones(); }
   document.getElementById('save-confirm').style.display='block';
   setTimeout(function(){document.getElementById('save-confirm').style.display='none';},2000);
 }
@@ -1010,36 +1340,82 @@ function renderResults(){
   }).join('');
 }
 // ── Table view ──
+function toggleVetoFilter(){
+  hideVetoed=!hideVetoed;
+  try{ localStorage.setItem('hideVetoed', hideVetoed ? 'true' : 'false'); }catch(e){}
+  // Recompute map if results are visible
+  if(document.getElementById('results-section').style.display!=='none'){ rebuildTop5(); computeZones(); }
+  renderTable();
+}
+
+function toggleVeto(areaName, checked){
+  var key='veto_'+areaName.replace(/[^a-zA-Z0-9]/g,'_');
+  if(checked){
+    vetoedAreas[key]=true;
+  } else {
+    delete vetoedAreas[key];
+  }
+  if(db){
+    db.ref('vetoes/'+key).set(checked ? true : null);
+  } else {
+    try{ localStorage.setItem('vetoes', JSON.stringify(vetoedAreas)); }catch(e){}
+  }
+  // Recompute map if results are visible
+  if(document.getElementById('results-section').style.display!=='none'){ rebuildTop5(); computeZones(); }
+  renderTable();
+}
+
+function isVetoed(areaName){
+  var key='veto_'+areaName.replace(/[^a-zA-Z0-9]/g,'_');
+  return !!vetoedAreas[key];
+}
+
 function renderTable(){
   var el=document.getElementById('areas-table-inner');
   var countEl=document.getElementById('table-count');
+  var btn=document.getElementById('veto-toggle-btn');
+  // Update toggle button state
+  if(hideVetoed){
+    btn.className='veto-btn hiding';
+    btn.textContent='🚫 Hiding vetoed';
+  } else {
+    btn.className='veto-btn showing';
+    btn.textContent='👁 Showing all';
+  }
   if(!greenAreas.length){
     el.innerHTML='<div class="areas-table-empty">&#128269; Run a search first to see all green areas in a table.<br><br>Green areas are those where both Nick and Harriet are within their commute limits.</div>';
-    countEl.textContent='';
+    countEl.textContent='Run a search to see areas';
     return;
   }
-  // Sort alphabetically by default
   var sorted=greenAreas.slice().sort(function(a,b){return a.area.name.localeCompare(b.area.name);});
-  countEl.textContent=sorted.length+' ideal areas — both within commute limits';
+  var vetoCount=sorted.filter(function(i){return isVetoed(i.area.name);}).length;
+  var displayed=hideVetoed ? sorted.filter(function(i){return !isVetoed(i.area.name);}) : sorted;
+  var countText=displayed.length+' ideal areas';
+  if(vetoCount>0) countText+=' · '+vetoCount+' vetoed';
+  countEl.textContent=countText;
   el.innerHTML='<table class="areas-table">'+
     '<thead><tr>'+
       '<th>Area</th>'+
       '<th style="text-align:center">&#128309; Nick</th>'+
       '<th style="text-align:center">&#129145; Harriet</th>'+
       '<th style="text-align:center">Rated</th>'+
+      '<th style="text-align:center">Never</th>'+
     '</tr></thead>'+
     '<tbody>'+
-    sorted.map(function(item){
+    displayed.map(function(item){
+      var vetoed=isVetoed(item.area.name);
       var saved=getSaved(item.area.name);
       var rated=saved.nickScore||saved.harrietScore;
       var ratedHtml=rated
         ? '<span style="font-size:11px;font-weight:700;color:#16a34a">&#9733; '+(saved.nickScore||0)+'+'+(saved.harrietScore||0)+'</span>'
         : '<span style="color:#d1d5db;font-size:11px">—</span>';
-      return '<tr onclick="jumpToArea(\''+item.area.name.replace(/'/g,"\\'")+'\')" title="Click to explore '+item.area.name+'">'+
-        '<td><span class="area-name-cell">'+item.area.name+'</span><span class="both-badge">✓</span></td>'+
-        '<td style="text-align:center"><span class="nick-time">'+item.t1+'m</span></td>'+
-        '<td style="text-align:center"><span class="harriet-time">'+item.t2+'m</span></td>'+
-        '<td style="text-align:center">'+ratedHtml+'</td>'+
+      var safeName=item.area.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return '<tr class="'+(vetoed?'veto-row':'')+'">'+
+        '<td onclick="jumpToArea(\''+safeName+'\')" style="cursor:pointer"><span class="area-name-cell">'+item.area.name+'</span>'+(vetoed?'':' <span class="both-badge">✓</span>')+'</td>'+
+        '<td style="text-align:center" onclick="jumpToArea(\''+safeName+'\')" style="cursor:pointer"><span class="nick-time">'+item.t1+'m</span></td>'+
+        '<td style="text-align:center" onclick="jumpToArea(\''+safeName+'\')" style="cursor:pointer"><span class="harriet-time">'+item.t2+'m</span></td>'+
+        '<td style="text-align:center" onclick="jumpToArea(\''+safeName+'\')" style="cursor:pointer">'+ratedHtml+'</td>'+
+        '<td class="veto-cell"><input type="checkbox" class="veto-check" title="Never live here" '+(vetoed?'checked':'')+' onchange="toggleVeto(\''+safeName+'\',this.checked)"></td>'+
       '</tr>';
     }).join('')+
     '</tbody></table>';
