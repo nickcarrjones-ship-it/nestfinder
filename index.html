@@ -128,6 +128,16 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
 .user-btn { width: 100%; padding: 14px; border-radius: 10px; border: 2px solid; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; margin-bottom: 10px; touch-action: manipulation; }
 .user-btn.nick { background: #eff6ff; border-color: #38bdf8; color: #0369a1; }
 .user-btn.harriet { background: #fdf2f8; border-color: #f43f8e; color: #be185d; }
+.pin-screen { display:none; flex-direction:column; align-items:center; gap:14px; }
+.pin-screen.active { display:flex; }
+.pin-title { font-size:15px; font-weight:700; color:#1a1f36; }
+.pin-dots { display:flex; gap:10px; }
+.pin-dot { width:14px; height:14px; border-radius:50%; border:2px solid #d1d5db; background:#fff; transition:0.15s; }
+.pin-dot.filled { background:#1a1f36; border-color:#1a1f36; }
+.pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
+.pin-key { padding:14px 0; border:1.5px solid #e5e7eb; border-radius:10px; font-size:18px; font-weight:600; color:#1a1f36; background:#fff; cursor:pointer; font-family:inherit; touch-action:manipulation; }
+.pin-key:active { background:#f1f5f9; }
+.pin-error { font-size:12px; color:#dc2626; font-weight:600; min-height:16px; }
 .user-indicator { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; margin-left: 6px; cursor: pointer; }
 .user-indicator.nick { background: #eff6ff; color: #0369a1; }
 .user-indicator.harriet { background: #fdf2f8; color: #be185d; }
@@ -181,11 +191,40 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
 </header>
 <div class="modal-overlay" id="login-modal" onclick="handleModalClick(event)">
   <div class="modal-box">
-    <div class="modal-title">👋 Who are you?</div>
-    <div class="modal-sub">Your ratings will sync across both devices in real time.</div>
-    <button class="user-btn nick" onclick="setUser('nick')">🔵 I'm Nick</button>
-    <button class="user-btn harriet" onclick="setUser('harriet')">🩷 I'm Harriet</button>
-    <div style="text-align:center;margin-top:4px"><button onclick="setUser('guest')" style="background:none;border:none;color:#9ca3af;font-size:12px;cursor:pointer;font-family:inherit;padding:6px">Continue as guest</button></div>
+    <!-- User selection screen -->
+    <div id="user-select-screen">
+      <div class="modal-title">👋 Who are you?</div>
+      <div class="modal-sub">Your ratings will sync across both devices in real time.</div>
+      <button class="user-btn nick" onclick="startPin('nick')">🔵 I'm Nick</button>
+      <button class="user-btn harriet" onclick="startPin('harriet')">🩷 I'm Harriet</button>
+      <div style="text-align:center;margin-top:4px"><button onclick="setUser('guest')" style="background:none;border:none;color:#9ca3af;font-size:12px;cursor:pointer;font-family:inherit;padding:6px">Continue as guest</button></div>
+    </div>
+    <!-- PIN entry screen -->
+    <div class="pin-screen" id="pin-screen">
+      <div class="pin-title" id="pin-title">Enter your PIN</div>
+      <div id="pin-hint" style="font-size:11px;color:#9ca3af;margin-top:-6px"></div>
+      <div class="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <div class="pin-pad">
+        <button class="pin-key" onclick="pinKey('1')">1</button>
+        <button class="pin-key" onclick="pinKey('2')">2</button>
+        <button class="pin-key" onclick="pinKey('3')">3</button>
+        <button class="pin-key" onclick="pinKey('4')">4</button>
+        <button class="pin-key" onclick="pinKey('5')">5</button>
+        <button class="pin-key" onclick="pinKey('6')">6</button>
+        <button class="pin-key" onclick="pinKey('7')">7</button>
+        <button class="pin-key" onclick="pinKey('8')">8</button>
+        <button class="pin-key" onclick="pinKey('9')">9</button>
+        <button class="pin-key" onclick="pinBack()" style="font-size:14px">←</button>
+        <button class="pin-key" onclick="pinKey('0')">0</button>
+        <button class="pin-key" onclick="showUserSelect()" style="font-size:11px;color:#9ca3af">Back</button>
+      </div>
+    </div>
   </div>
 </div>
 <script>
@@ -195,11 +234,59 @@ window.addEventListener('error', function(e){
     e.preventDefault(); return true;
   }
 });
+
+// ── PIN config — change these to your preferred PINs ──
+var PINS={nick:'2509',harriet:'2509'};
+var PIN_HINTS={nick:'Anniversary DDMM',harriet:'Anniversary DDMM'};
+var pinBuffer='';
+var pinTarget='';
+
+function startPin(name){
+  pinTarget=name;
+  pinBuffer='';
+  document.getElementById('user-select-screen').style.display='none';
+  document.getElementById('pin-screen').classList.add('active');
+  document.getElementById('pin-title').textContent='Enter PIN — '+(name==='nick'?'Nick 🔵':'Harriet 🩷');
+  document.getElementById('pin-error').textContent='';
+  document.getElementById('pin-hint').textContent='Hint: '+PIN_HINTS[name];
+  updatePinDots();
+}
+function showUserSelect(){
+  pinBuffer='';
+  document.getElementById('user-select-screen').style.display='block';
+  document.getElementById('pin-screen').classList.remove('active');
+}
+function updatePinDots(){
+  for(var i=0;i<4;i++){
+    document.getElementById('pd'+i).className='pin-dot'+(i<pinBuffer.length?' filled':'');
+  }
+}
+function pinKey(k){
+  if(pinBuffer.length>=4) return;
+  pinBuffer+=k;
+  updatePinDots();
+  if(pinBuffer.length===4) checkPin();
+}
+function pinBack(){
+  pinBuffer=pinBuffer.slice(0,-1);
+  updatePinDots();
+  document.getElementById('pin-error').textContent='';
+}
+function checkPin(){
+  if(pinBuffer===PINS[pinTarget]){
+    setUser(pinTarget);
+  } else {
+    document.getElementById('pin-error').textContent='Incorrect PIN — try again';
+    pinBuffer='';
+    updatePinDots();
+  }
+}
 function handleModalClick(e){
   if(e.target===document.getElementById('login-modal')) setUser('guest');
 }
 function showLogin(){
   document.getElementById('login-modal').style.display='flex';
+  showUserSelect();
 }
 function setUser(name){
   if(typeof currentUser!=='undefined') currentUser=name;
@@ -210,7 +297,6 @@ function setUser(name){
   ind.className='user-indicator '+(name==='guest'?'nick':name);
   var label=name==='nick'?'Nick':name==='harriet'?'Harriet':'Guest';
   ind.innerHTML='<span class="sync-dot"></span>'+label;
-  // Load Firebase for real users, skip for guest
   if(name!=='guest' && typeof initFirebase==='function') initFirebase();
 }
 </script>
@@ -1035,16 +1121,29 @@ async function loadOverpassClustered(name, query, color, emoji, popupFn, cap){
 
 async function loadCycleRoutes(bbox){
   var url='https://overpass-api.de/api/interpreter';
-  var body='[out:json][timeout:20][maxsize:2000000];(way["bicycle"="designated"]'+bbox+';way["cycleway"~"."]'+bbox+';);out geom 200;';
+  // Query for dedicated cycle ways, paths and lanes
+  var body='[out:json][timeout:25][maxsize:2000000];('+
+    'way["highway"="cycleway"]'+bbox+';'+
+    'way["bicycle"="designated"]'+bbox+';'+
+    'way["cycleway"="track"]'+bbox+';'+
+    'way["cycleway"="lane"]'+bbox+';'+
+  ');out geom 300;';
   var resp=await fetch(url,{method:'POST',body:body});
   var data=await resp.json();
+  var seen={};
   data.elements.forEach(function(el){
     if(!el.geometry||!el.geometry.length) return;
+    if(seen[el.id]) return; seen[el.id]=true;
     var latlngs=el.geometry.map(function(p){return[p.lat,p.lon];});
-    L.polyline(latlngs,{color:'#06b6d4',weight:2.5,opacity:0.75})
-      .bindPopup('<b>🚲 Cycle Route</b>'+(el.tags.name?'<br>'+el.tags.name:'')+'<br><span style="font-size:11px;color:#6b7280">'+(el.tags.surface||'designated')+'</span>')
+    var type=el.tags.highway==='cycleway'?'Dedicated Cycleway':
+             el.tags.cycleway==='track'?'Cycle Track':
+             el.tags.cycleway==='lane'?'Cycle Lane':'Cycle Route';
+    L.polyline(latlngs,{color:'#06b6d4',weight:3,opacity:0.8})
+      .bindPopup('<b>🚲 '+type+'</b>'+(el.tags.name?'<br>'+el.tags.name:'')+(el.tags.surface?'<br><span style="font-size:11px;color:#6b7280">Surface: '+el.tags.surface+'</span>':''))
       .addTo(layers.cycles);
   });
+  // Ensure layer is on the map
+  if(layerState.cycles) layers.cycles.addTo(map);
 }
 
 function loadFlightPaths(){
@@ -1225,7 +1324,7 @@ function computeZones(){
       neverBtn,
       {minWidth:200}
     ).addTo(layers.commute);
-    circle.on('click',function(){ circle.openPopup(); });
+    circle.on('click',function(){ circle.openPopup(); openAreaInfo(area,t1,t2,both); });
     if(isTop){
       var label=rank===1?'👑':(rank+'');
       var rankIcon=L.divIcon({
