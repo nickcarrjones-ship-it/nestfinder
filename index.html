@@ -181,14 +181,40 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
   <div class="header-status" id="header-status">Find your overlap zone</div>
   <span class="user-indicator" id="user-indicator" onclick="showLogin()" title="Switch user"></span>
 </header>
-<div class="modal-overlay" id="login-modal">
+<div class="modal-overlay" id="login-modal" onclick="handleModalClick(event)">
   <div class="modal-box">
     <div class="modal-title">👋 Who are you?</div>
     <div class="modal-sub">Your ratings will sync across both devices in real time.</div>
     <button class="user-btn nick" onclick="setUser('nick')">🔵 I'm Nick</button>
     <button class="user-btn harriet" onclick="setUser('harriet')">🩷 I'm Harriet</button>
+    <div style="text-align:center;margin-top:4px"><button onclick="setUser('guest')" style="background:none;border:none;color:#9ca3af;font-size:12px;cursor:pointer;font-family:inherit;padding:6px">Continue as guest</button></div>
   </div>
 </div>
+<script>
+// Global error boundary — prevents CDN-blocked scripts cascading into fake errors
+window.addEventListener('error', function(e){
+  if(e.filename && (e.filename.includes('cdnjs') || e.filename.includes('gstatic') || e.filename.includes('firebasejs'))) {
+    e.preventDefault(); return true;
+  }
+});
+function handleModalClick(e){
+  if(e.target===document.getElementById('login-modal')) setUser('guest');
+}
+function showLogin(){
+  document.getElementById('login-modal').style.display='flex';
+}
+function setUser(name){
+  // currentUser is defined in the main script — set it if available
+  if(typeof currentUser!=='undefined') currentUser=name;
+  else window._pendingUser=name; // store until main script picks it up
+  document.getElementById('login-modal').style.display='none';
+  var ind=document.getElementById('user-indicator');
+  if(!ind) return;
+  ind.className='user-indicator '+(name==='guest'?'nick':name);
+  var label=name==='nick'?'Nick':name==='harriet'?'Harriet':'Guest';
+  ind.innerHTML='<span class="sync-dot"></span>'+label;
+}
+</script>
 <div class="main">
   <div class="sidebar" id="sidebar">
     <div class="tabs">
@@ -308,6 +334,7 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
         </div>
         <div class="section">
           <div class="section-title" style="color:#38bdf8">&#128309; Nick's Rating</div>
+          <div id="guest-banner" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:8px 10px;font-size:11px;color:#854d0e;margin-bottom:8px">&#128274; Viewing only — log in as Nick or Harriet to rate areas</div>
           <div class="score-block">
             <div class="score-row" id="nick-scores"></div>
             <textarea class="comment-box" id="nick-comment" rows="2" placeholder="Nick's thoughts on this area..."></textarea>
@@ -321,7 +348,7 @@ input:checked + .toggle-slider:before { transform: translateX(18px); }
           </div>
         </div>
         <div class="section">
-          <button class="save-btn" onclick="saveRatings()">&#128190; Save Ratings</button>
+          <button class="save-btn" id="save-btn" onclick="saveRatings()">&#128190; Save Ratings</button>
           <div class="save-confirm" id="save-confirm">&#10003; Saved!</div>
         </div>
       </div>
@@ -402,12 +429,21 @@ var HOL={lat:51.5174,lng:-0.1200};
 var currentArea=null;
 var nickScore=0, harrietScore=0;
 var zoomCircles=[];
-var currentUser=null;
+var currentUser=window._pendingUser||null; // pick up any early login
 var db=null;
 var ratingsCache={};
-// Veto state: set of area names vetoed, persisted to Firebase/localStorage
 var vetoedAreas={};
-var hideVetoed=true; // default: hide vetoed areas
+var hideVetoed=true;
+
+// ── User login — defined early in inline script above modal ──
+// onUserSet fires after Firebase is ready to update the sync dot
+function onUserSet(name){
+  var ind=document.getElementById('user-indicator');
+  if(!ind) return;
+  ind.className='user-indicator '+(name==='guest'?'nick':name);
+  var label=name==='nick'?'Nick':name==='harriet'?'Harriet':'Guest';
+  ind.innerHTML='<span class="sync-dot'+(db&&name!=='guest'?' connected':'')+'"></span>'+label;
+}
 
 // ── Firebase init ──
 var firebaseConfig={
@@ -444,17 +480,6 @@ try{ hideVetoed = localStorage.getItem('hideVetoed')!=='false'; }catch(e){}
 // Load vetoes from localStorage if no Firebase
 try{ if(!db){ vetoedAreas=JSON.parse(localStorage.getItem('vetoes')||'{}'); } }catch(e){}
 
-// ── User login ──
-function showLogin(){
-  document.getElementById('login-modal').style.display='flex';
-}
-function setUser(name){
-  currentUser=name;
-  document.getElementById('login-modal').style.display='none';
-  var ind=document.getElementById('user-indicator');
-  ind.className='user-indicator '+name;
-  ind.innerHTML='<span class="sync-dot'+(db?' connected':'')+'"></span>'+(name==='nick'?'Nick':'Harriet');
-}
 // Show login on load
 window.addEventListener('load',function(){ rebuildTop5(); showLogin(); });
 
@@ -836,33 +861,43 @@ var AGENTS={
 };
 
 // ── Map init ──
-var map=L.map('map',{center:[51.505,-0.06],zoom:11,zoomControl:false});
-L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
-var renderer=L.svg({padding:0.5});
-var layers={
-  commute:L.layerGroup().addTo(map),
-  markers:L.layerGroup().addTo(map),
-  thirdspace:L.layerGroup().addTo(map),
-  schools:L.layerGroup(),
-  gps:L.layerGroup(),
-  pubs:L.layerGroup(),
-  cycles:L.layerGroup(),
-  flights:L.layerGroup(),
-  flood:L.layerGroup(),
-  parks:L.layerGroup()
-};
+if(typeof L==='undefined'){
+  document.getElementById('map').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;background:#f8fafc;color:#6b7280;font-family:inherit;text-align:center;padding:24px"><div style="font-size:36px">🗺️</div><div style="font-size:14px;font-weight:700;color:#1a1f36">Map unavailable in preview</div><div style="font-size:12px;line-height:1.6">External scripts are blocked in this sandbox.<br>Deploy to GitHub Pages to see the full app.</div></div>';
+  // Stub out map-dependent functions so the rest of the UI still works
+  var map={on:function(){},getBounds:function(){return{getSouth:function(){return 51.28},getWest:function(){return-0.55},getNorth:function(){return 51.72},getEast:function(){return 0.32}};},getZoom:function(){return 11},closePopup:function(){},panTo:function(){}};
+  var renderer={};
+  var layers={commute:{clearLayers:function(){},addTo:function(){}},markers:{clearLayers:function(){},addTo:function(){}},thirdspace:{addTo:function(){}},schools:{clearLayers:function(){},addTo:function(){},addLayer:function(){}},gps:{clearLayers:function(){},addTo:function(){},addLayer:function(){}},pubs:{clearLayers:function(){},addTo:function(){},addLayer:function(){}},cycles:{clearLayers:function(){},addTo:function(){}},flights:{clearLayers:function(){},addTo:function(){}},flood:{clearLayers:function(){},addTo:function(){}},parks:{clearLayers:function(){},addTo:function(){}}};
+} else {
+  var map=L.map('map',{center:[51.505,-0.06],zoom:11,zoomControl:false});
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19}).addTo(map);
+  var renderer=L.svg({padding:0.5});
+  var layers={
+    commute:L.layerGroup().addTo(map),
+    markers:L.layerGroup().addTo(map),
+    thirdspace:L.layerGroup().addTo(map),
+    schools:L.layerGroup(),
+    gps:L.layerGroup(),
+    pubs:L.layerGroup(),
+    cycles:L.layerGroup(),
+    flights:L.layerGroup(),
+    flood:L.layerGroup(),
+    parks:L.layerGroup()
+  };
+}
 var layerState={schools:false,gps:false,pubs:false,cycles:false,flights:false,flood:false,parks:false};
 var layerLoaded={schools:false,gps:false,pubs:false,cycles:false,flights:false,flood:false,parks:false};
 var layerPanelOpen=true;
 
 // ── Plot Third Space markers ──
-THIRD_SPACE.forEach(function(ts){
-  var icon=L.divIcon({html:'<div class="ts-marker">🏋️</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
-  L.marker([ts.lat,ts.lng],{icon:icon})
-    .bindPopup('<b style="font-size:13px">'+ts.name+'</b><br><span style="font-size:11px;color:#6b7280">'+ts.addr+'</span>')
-    .addTo(layers.thirdspace);
-});
+if(typeof L!=='undefined'){
+  THIRD_SPACE.forEach(function(ts){
+    var icon=L.divIcon({html:'<div class="ts-marker">🏋️</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
+    L.marker([ts.lat,ts.lng],{icon:icon})
+      .bindPopup('<b style="font-size:13px">'+ts.name+'</b><br><span style="font-size:11px;color:#6b7280">'+ts.addr+'</span>')
+      .addTo(layers.thirdspace);
+  });
+}
 
 // ── Layer panel ──
 function toggleLayerPanel(){
@@ -900,14 +935,16 @@ function getViewBounds(pad){
 
 // ── Re-load viewport layers on map moveend (debounced 600ms) ──
 var moveDebounce=null;
-map.on('moveend',function(){
-  clearTimeout(moveDebounce);
-  moveDebounce=setTimeout(function(){
-    ['schools','gps','pubs','parks'].forEach(function(name){
-      if(layerState[name]){ reloadViewportLayer(name); }
-    });
-  },600);
-});
+if(typeof L!=='undefined'){
+  map.on('moveend',function(){
+    clearTimeout(moveDebounce);
+    moveDebounce=setTimeout(function(){
+      ['schools','gps','pubs','parks'].forEach(function(name){
+        if(layerState[name]){ reloadViewportLayer(name); }
+      });
+    },600);
+  });
+}
 
 async function reloadViewportLayer(name){
   layers[name].clearLayers();
@@ -1106,7 +1143,7 @@ function updateCircleRadii(){
   var r=getRadiusForZoom(map.getZoom());
   zoomCircles.forEach(function(c){c.setRadius(r);});
 }
-map.on('zoomend',updateCircleRadii);
+if(typeof L!=='undefined') map.on('zoomend',updateCircleRadii);
 
 // ── Top-5 cache — rebuilt only when ratings change ──
 var top5Cache={};
@@ -1161,6 +1198,15 @@ function computeZones(){
     var isTop=rank&&both;
     var color=isTop?'#f59e0b':both?'#84cc16':inP1?'#38bdf8':'#f43f8e';
     var borderColor=isTop?'#d97706':both?'#65a30d':'transparent';
+    var vetoed=isVetoed(area.name);
+    var safeN=area.name.replace(/'/g,"\\'");
+    var isGuest=currentUser==='guest';
+    var neverBtn='<div style="margin-top:8px;border-top:1px solid #f1f5f9;padding-top:8px;display:flex;gap:6px;">'+
+      '<button '+(isGuest?'disabled title="Log in to veto areas"':'')+' onclick="popupVeto(\''+safeN+'\')" style="flex:1;padding:6px 4px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:'+(isGuest?'not-allowed':'pointer')+';font-family:inherit;opacity:'+(isGuest?'0.4':'1')+';background:'+(vetoed?'#fee2e2':'#f3f4f6')+';color:'+(vetoed?'#b91c1c':'#6b7280')+'">'+
+      (vetoed?'✓ Vetoed — undo':'🚫 Never live here')+'</button>'+
+      '<button onclick="closePopupOpenArea(\''+safeN+'\','+t1+','+t2+','+both+')" style="flex:1;padding:6px 4px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:#1a1f36;color:#a3e635">'+(isGuest?'View →':'Score →')+'</button>'+
+      '</div>';
+    if(typeof L==='undefined') return; // skip map drawing if Leaflet unavailable
     var circle=L.circle([area.lat,area.lng],{
       renderer:renderer,radius:r,
       fillColor:color,color:(both||isTop)?borderColor:'transparent',
@@ -1169,9 +1215,11 @@ function computeZones(){
       '<b style="color:'+(isTop?'#d97706':both?'#16a34a':color)+'">'+(isTop?(rank===1?'👑':'🥇🥈🥉🏅🏅'.split('')[rank-1]+' '):'')+(both&&!isTop?'&#9733; ':'')+area.name+'</b>'+
       (isTop?'<div style="font-size:11px;color:#d97706;font-weight:700;margin:1px 0 5px">Rank #'+rank+' — Combined score '+(ranked.total)+'/20</div>':'<div style="font-size:11px;color:#6b7280;margin:2px 0 6px">'+(both?'Ideal for both':'Reachable by one')+'</div>')+
       '<div style="font-size:12px;margin-bottom:2px">&#128309; Nick: <b>'+t1+' min total</b> ('+jt.cw+'+'+p1Walk+' walk)</div>'+
-      '<div style="font-size:12px">&#129145; Harriet: <b>'+t2+' min total</b> ('+jt.hol+'+'+p2Walk+' walk)</div>'
+      '<div style="font-size:12px">&#129145; Harriet: <b>'+t2+' min total</b> ('+jt.hol+'+'+p2Walk+' walk)</div>'+
+      neverBtn,
+      {minWidth:200}
     ).addTo(layers.commute);
-    circle.on('click',function(){openAreaInfo(area,t1,t2,both);});
+    circle.on('click',function(){ circle.openPopup(); });
     if(isTop){
       var label=rank===1?'👑':(rank+'');
       var rankIcon=L.divIcon({
@@ -1183,9 +1231,11 @@ function computeZones(){
     zoomCircles.push(circle);
   });
 
-  function mkIcon(lbl,col){return L.divIcon({html:'<div style="background:'+col+';width:32px;height:32px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)">'+lbl+'</div>',className:'',iconSize:[32,32],iconAnchor:[16,16]});}
-  L.marker([CW.lat,CW.lng],{icon:mkIcon('CW','#38bdf8')}).bindPopup('<b>Canary Wharf</b><br>Nick').addTo(layers.markers);
-  L.marker([HOL.lat,HOL.lng],{icon:mkIcon('HOL','#f43f8e')}).bindPopup('<b>Holborn</b><br>Harriet').addTo(layers.markers);
+  function mkIcon(lbl,col){return typeof L!=='undefined'?L.divIcon({html:'<div style="background:'+col+';width:32px;height:32px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)">'+lbl+'</div>',className:'',iconSize:[32,32],iconAnchor:[16,16]}):null;}
+  if(typeof L!=='undefined'){
+    L.marker([CW.lat,CW.lng],{icon:mkIcon('CW','#38bdf8')}).bindPopup('<b>Canary Wharf</b><br>Nick').addTo(layers.markers);
+    L.marker([HOL.lat,HOL.lng],{icon:mkIcon('HOL','#f43f8e')}).bindPopup('<b>Holborn</b><br>Harriet').addTo(layers.markers);
+  }
   document.getElementById('stat-ideal').textContent=ideal;
   document.getElementById('stat-reachable').textContent=reach;
   document.getElementById('results-section').style.display='block';
@@ -1194,7 +1244,17 @@ function computeZones(){
   document.getElementById('data-note').textContent=ideal+' areas work for both within your limits. Tap any bubble to explore.';
 }
 
-function clearResults(){
+// ── Popup button handlers (must be global for inline onclick) ──
+function popupVeto(areaName){
+  var vetoed=isVetoed(areaName);
+  toggleVeto(areaName, !vetoed);
+  map.closePopup();
+}
+function closePopupOpenArea(areaName,t1,t2,both){
+  map.closePopup();
+  var area=AREAS.find(function(a){return a.name===areaName;});
+  if(area) openAreaInfo(area,t1,t2,both);
+}
   layers.commute.clearLayers(); layers.markers.clearLayers();
   zoomCircles=[];
   document.getElementById('results-section').style.display='none';
@@ -1246,6 +1306,14 @@ function openAreaInfo(area,t1,t2,both){
   document.getElementById('nick-comment').value=saved.nickComment||'';
   document.getElementById('harriet-comment').value=saved.harrietComment||'';
   document.getElementById('save-confirm').style.display='none';
+  // Guest mode — show banner, disable editing
+  var isGuest=currentUser==='guest';
+  document.getElementById('guest-banner').style.display=isGuest?'block':'none';
+  document.getElementById('save-btn').style.display=isGuest?'none':'block';
+  document.getElementById('nick-comment').disabled=isGuest;
+  document.getElementById('harriet-comment').disabled=isGuest;
+  document.getElementById('nick-comment').style.opacity=isGuest?'0.5':'1';
+  document.getElementById('harriet-comment').style.opacity=isGuest?'0.5':'1';
   // AI lifestyle data
   document.getElementById('ai-lifestyle-content').innerHTML='<div class="lifestyle-loading">&#9679;&#9679;&#9679; Asking Claude about '+area.name+'...</div>';
   document.getElementById('ai-parks').innerHTML='';
@@ -1268,6 +1336,7 @@ function renderScoreButtons(containerId,person,selected){
   document.getElementById(containerId).innerHTML=html;
 }
 function setScore(person,val){
+  if(currentUser==='guest') return;
   if(person==='nick'){nickScore=val;renderScoreButtons('nick-scores','nick',val);}
   else{harrietScore=val;renderScoreButtons('harriet-scores','harriet',val);}
 }
@@ -1279,7 +1348,7 @@ function getSaved(name){
   try{return JSON.parse(localStorage.getItem('area_'+name))||{};}catch(e){return {};}
 }
 function saveRatings(){
-  if(!currentArea)return;
+  if(!currentArea||currentUser==='guest') return;
   var key='area_'+currentArea.replace(/[^a-zA-Z0-9]/g,'_');
   var existing=getSaved(currentArea);
   var data=Object.assign({},existing);
@@ -1349,6 +1418,7 @@ function toggleVetoFilter(){
 }
 
 function toggleVeto(areaName, checked){
+  if(currentUser==='guest') return;
   var key='veto_'+areaName.replace(/[^a-zA-Z0-9]/g,'_');
   if(checked){
     vetoedAreas[key]=true;
@@ -1415,7 +1485,7 @@ function renderTable(){
         '<td style="text-align:center" onclick="jumpToArea(\''+safeName+'\')" style="cursor:pointer"><span class="nick-time">'+item.t1+'m</span></td>'+
         '<td style="text-align:center" onclick="jumpToArea(\''+safeName+'\')" style="cursor:pointer"><span class="harriet-time">'+item.t2+'m</span></td>'+
         '<td style="text-align:center" onclick="jumpToArea(\''+safeName+'\')" style="cursor:pointer">'+ratedHtml+'</td>'+
-        '<td class="veto-cell"><input type="checkbox" class="veto-check" title="Never live here" '+(vetoed?'checked':'')+' onchange="toggleVeto(\''+safeName+'\',this.checked)"></td>'+
+        '<td class="veto-cell"><input type="checkbox" class="veto-check" title="'+(currentUser==='guest'?'Log in to veto areas':'Never live here')+'" '+(vetoed?'checked':'')+' '+(currentUser==='guest'?'disabled':'')+' onchange="toggleVeto(\''+safeName+'\',this.checked)"></td>'+
       '</tr>';
     }).join('')+
     '</tbody></table>';
